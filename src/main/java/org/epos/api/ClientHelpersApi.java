@@ -205,7 +205,7 @@ public interface ClientHelpersApi {
 			@ApiResponse(responseCode = "404", description = "Not Found") })
 	@GetMapping(value = "/software/search", produces = { "application/json" })
 	ResponseEntity<SearchResponse> searchSoftware(
-			@Parameter(in = ParameterIn.QUERY, description = "q", schema = @Schema()) @RequestParam(value = "query", required = false) String query);
+			@Parameter(in = ParameterIn.QUERY, description = "q", schema = @Schema()) @RequestParam(value = "q", required = false) String query);
 
 	@Operation(summary = "metadata software details", description = "returns detailed information useful to contextualise the software discovery phase", tags = {
 			"Resources Service" })

@@ -3,14 +3,14 @@ package org.epos.api.beans.software;
 import org.epos.eposdatamodel.SoftwareSourceCode;
 
 public class SoftwareSourceCodeDetails extends SoftwareDetailsResponse {
-	private final SoftwareSourceCodeResponse softwareSourceCode;
+	private final SoftwareSourceCodeResponse object;
 
 	public SoftwareSourceCodeDetails(SoftwareSourceCode softwareSourceCode) {
 		super("software_source_code");
-		this.softwareSourceCode = new SoftwareSourceCodeResponse(softwareSourceCode);
+		this.object = new SoftwareSourceCodeResponse(softwareSourceCode);
 	}
 
-	public SoftwareSourceCodeResponse getSoftwareSourceCode() {
-		return softwareSourceCode;
+	public SoftwareSourceCodeResponse getObject() {
+		return object;
 	}
 }
