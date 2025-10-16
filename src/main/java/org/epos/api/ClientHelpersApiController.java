@@ -10,8 +10,10 @@ import org.epos.api.beans.Distribution;
 import org.epos.api.beans.LinkedResponse;
 import org.epos.api.beans.ParametersResponse;
 import org.epos.api.beans.SearchResponse;
+import org.epos.api.beans.software.SoftwareDetailsResponse;
 import org.epos.api.core.distributions.LinkedEntityParametersSearch;
 import org.epos.api.core.distributions.LinkedEntityWebserviceSearch;
+import org.epos.api.core.software.SoftwareDetails;
 import org.epos.api.core.software.SoftwareSearch;
 import org.epos.api.utility.Utils;
 import org.epos.eposdatamodel.User;
@@ -564,5 +566,11 @@ public class ClientHelpersApiController extends ApiController implements ClientH
 	public ResponseEntity<SearchResponse> searchSoftware(String query) {
 		var response = SoftwareSearch.generate(query);
 		return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(response);
+	}
+
+	@Override
+	public ResponseEntity<SoftwareDetailsResponse> detailsSoftware(String id) {
+		SoftwareDetailsResponse result = SoftwareDetails.generate(id);
+		return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
 	}
 }

@@ -5,6 +5,7 @@ import org.epos.api.beans.Facility;
 import org.epos.api.beans.LinkedResponse;
 import org.epos.api.beans.ParametersResponse;
 import org.epos.api.beans.SearchResponse;
+import org.epos.api.beans.software.SoftwareDetailsResponse;
 import org.epos.eposdatamodel.Equipment;
 import org.epos.library.feature.FeaturesCollection;
 import org.springframework.http.ResponseEntity;
@@ -204,5 +205,21 @@ public interface ClientHelpersApi {
 			@ApiResponse(responseCode = "404", description = "Not Found") })
 	@GetMapping(value = "/software/search", produces = { "application/json" })
 	ResponseEntity<SearchResponse> searchSoftware(
-			@Parameter(in = ParameterIn.QUERY, description = "query", schema = @Schema()) @RequestParam(value = "query", required = false) String query);
+			@Parameter(in = ParameterIn.QUERY, description = "q", schema = @Schema()) @RequestParam(value = "q", required = false) String query);
+
+	@Operation(summary = "metadata software details", description = "returns detailed information useful to contextualise the software discovery phase", tags = {
+			"Resources Service" })
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "ok.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = SoftwareDetailsResponse.class))),
+			@ApiResponse(responseCode = "201", description = "Created."),
+			@ApiResponse(responseCode = "204", description = "No content."),
+			@ApiResponse(responseCode = "301", description = "Moved Permanently."),
+			@ApiResponse(responseCode = "400", description = "Bad request."),
+			@ApiResponse(responseCode = "401", description = "Access token is missing or invalid"),
+			@ApiResponse(responseCode = "403", description = "Forbidden"),
+			@ApiResponse(responseCode = "404", description = "Not Found") })
+	@RequestMapping(value = "/software/details/{instance_id}", produces = {
+			"application/json" }, method = RequestMethod.GET)
+	ResponseEntity<SoftwareDetailsResponse> detailsSoftware(
+			@Parameter(in = ParameterIn.PATH, description = "The software ID", required = true, schema = @Schema()) @PathVariable("instance_id") String id);
 }
