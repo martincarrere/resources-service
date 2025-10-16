@@ -5,6 +5,7 @@ import org.epos.api.beans.Facility;
 import org.epos.api.beans.LinkedResponse;
 import org.epos.api.beans.ParametersResponse;
 import org.epos.api.beans.SearchResponse;
+import org.epos.api.beans.software.SoftwareDetailsResponse;
 import org.epos.eposdatamodel.Equipment;
 import org.epos.library.feature.FeaturesCollection;
 import org.springframework.http.ResponseEntity;
@@ -209,7 +210,7 @@ public interface ClientHelpersApi {
 	@Operation(summary = "metadata software details", description = "returns detailed information useful to contextualise the software discovery phase", tags = {
 			"Resources Service" })
 	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "ok.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Distribution.class))),
+			@ApiResponse(responseCode = "200", description = "ok.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = SoftwareDetailsResponse.class))),
 			@ApiResponse(responseCode = "201", description = "Created."),
 			@ApiResponse(responseCode = "204", description = "No content."),
 			@ApiResponse(responseCode = "301", description = "Moved Permanently."),
@@ -219,6 +220,6 @@ public interface ClientHelpersApi {
 			@ApiResponse(responseCode = "404", description = "Not Found") })
 	@RequestMapping(value = "/software/details/{instance_id}", produces = {
 			"application/json" }, method = RequestMethod.GET)
-	ResponseEntity<Object> detailsSoftware(
+	ResponseEntity<SoftwareDetailsResponse> detailsSoftware(
 			@Parameter(in = ParameterIn.PATH, description = "The software ID", required = true, schema = @Schema()) @PathVariable("instance_id") String id);
 }
