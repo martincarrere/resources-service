@@ -298,7 +298,7 @@ public class SoftwareSearch {
 	}
 
 	private static boolean matchesQuery(String query, String title, String description) {
-		if (query == null || query.isEmpty())
+		if (query == null || query.isEmpty() || title == null || title.isEmpty() || description == null || description.isEmpty())
 			return true;
 		String lowerQuery = query.toLowerCase();
 		return title.toLowerCase().contains(lowerQuery) || description.toLowerCase().contains(lowerQuery);
