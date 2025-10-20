@@ -127,7 +127,7 @@ public class AvailableFormatsGeneration {
 				}
 			}
 
-			if (operation.getMapping() != null) {
+			if (operation.getMapping() != null && operation.getTemplate() != null) {
 				List<String> maps = operation.getMapping().parallelStream().map(LinkedEntity::getInstanceId).collect(Collectors.toList());
 				List<Mapping> mappings = (List<Mapping>) AbstractAPI.retrieveAPI(EntityNames.MAPPING.name()).retrieveBunch(maps);
 				for (Mapping map : mappings) {
