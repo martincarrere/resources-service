@@ -22,6 +22,7 @@ public class SoftwareSourceCodeResponse {
 	private List<String> citation;
 	private String size;
 	private String timeRequired;
+	private String id;
 
 	public SoftwareSourceCodeResponse(SoftwareSourceCode softwareSourceCode) {
 		this.name = softwareSourceCode.getName();
@@ -40,6 +41,7 @@ public class SoftwareSourceCodeResponse {
 		this.citation = softwareSourceCode.getCitation();
 		this.size = softwareSourceCode.getSize();
 		this.timeRequired = softwareSourceCode.getTimeRequired();
+		this.id = softwareSourceCode.getInstanceId();
 	}
 
 	public String getName() {
@@ -168,5 +170,9 @@ public class SoftwareSourceCodeResponse {
 
 	public void setTimeRequired(String timeRequired) {
 		this.timeRequired = timeRequired;
+	}
+
+	public String getId() {
+		return this.id;
 	}
 }

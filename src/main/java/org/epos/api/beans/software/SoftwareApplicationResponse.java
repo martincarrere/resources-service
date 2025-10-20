@@ -25,6 +25,7 @@ public class SoftwareApplicationResponse {
 	private List<String> citation;
 	private List<String> operatingSystem;
 	private String keywords;
+	private String id;
 
 	public SoftwareApplicationResponse(SoftwareApplication softwareApplication) {
 		this.name = softwareApplication.getName();
@@ -46,6 +47,7 @@ public class SoftwareApplicationResponse {
 		this.citation = softwareApplication.getCitation();
 		this.operatingSystem = softwareApplication.getOperatingSystem();
 		this.keywords = softwareApplication.getKeywords();
+		this.id = softwareApplication.getInstanceId();
 	}
 
 	public String getName() {
@@ -198,5 +200,9 @@ public class SoftwareApplicationResponse {
 
 	public void setKeywords(String keywords) {
 		this.keywords = keywords;
+	}
+
+	public String getId() {
+		return this.id;
 	}
 }
