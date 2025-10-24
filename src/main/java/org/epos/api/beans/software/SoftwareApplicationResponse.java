@@ -1,8 +1,11 @@
 package org.epos.api.beans.software;
 
-import org.epos.eposdatamodel.SoftwareApplication;
-
+import java.util.ArrayList;
 import java.util.List;
+
+import org.epos.api.beans.AvailableContactPoints;
+import org.epos.api.facets.Node;
+import org.epos.eposdatamodel.SoftwareApplication;
 
 public class SoftwareApplicationResponse {
 
@@ -12,7 +15,7 @@ public class SoftwareApplicationResponse {
 	private String installURL;
 	private String licenseURL;
 	private String mainEntityOfPage;
-	private String requirements;
+	private String softwareRequirements;
 	private String softwareVersion;
 	private String softwareStatus;
 	private String spatial;
@@ -20,12 +23,16 @@ public class SoftwareApplicationResponse {
 	private String fileSize;
 	private String timeRequired;
 	private String processorRequirements;
-	private String memoryrequirements;
+	private String memoryRequirements;
 	private String storageRequirements;
 	private List<String> citation;
 	private List<String> operatingSystem;
-	private String keywords;
+	private List<String> keywords;
 	private String id;
+	private List<String> doi;
+	private List<String> identifiers;
+	private List<AvailableContactPoints> availableContactPoints;
+	private Node categories;
 
 	public SoftwareApplicationResponse(SoftwareApplication softwareApplication) {
 		this.name = softwareApplication.getName();
@@ -34,7 +41,7 @@ public class SoftwareApplicationResponse {
 		this.installURL = softwareApplication.getInstallURL();
 		this.licenseURL = softwareApplication.getLicenseURL();
 		this.mainEntityOfPage = softwareApplication.getMainEntityOfPage();
-		this.requirements = softwareApplication.getRequirements();
+		this.softwareRequirements = softwareApplication.getRequirements();
 		this.softwareVersion = softwareApplication.getSoftwareVersion();
 		this.softwareStatus = softwareApplication.getSoftwareStatus();
 		this.spatial = softwareApplication.getSpatial();
@@ -42,12 +49,18 @@ public class SoftwareApplicationResponse {
 		this.fileSize = softwareApplication.getFileSize();
 		this.timeRequired = softwareApplication.getTimeRequired();
 		this.processorRequirements = softwareApplication.getProcessorRequirements();
-		this.memoryrequirements = softwareApplication.getMemoryrequirements();
+		this.memoryRequirements = softwareApplication.getMemoryrequirements();
 		this.storageRequirements = softwareApplication.getStorageRequirements();
 		this.citation = softwareApplication.getCitation();
 		this.operatingSystem = softwareApplication.getOperatingSystem();
-		this.keywords = softwareApplication.getKeywords();
+		// Keywords will be set by the generation class
+		this.keywords = null;
 		this.id = softwareApplication.getInstanceId();
+		this.availableContactPoints = new ArrayList<>();
+	}
+
+	public SoftwareApplicationResponse() {
+		this.availableContactPoints = new ArrayList<>();
 	}
 
 	public String getName() {
@@ -98,12 +111,12 @@ public class SoftwareApplicationResponse {
 		this.mainEntityOfPage = mainEntityOfPage;
 	}
 
-	public String getRequirements() {
-		return requirements;
+	public String getSoftwareRequirements() {
+		return softwareRequirements;
 	}
 
-	public void setRequirements(String requirements) {
-		this.requirements = requirements;
+	public void setSoftwareRequirements(String softwareRequirements) {
+		this.softwareRequirements = softwareRequirements;
 	}
 
 	public String getSoftwareVersion() {
@@ -162,12 +175,12 @@ public class SoftwareApplicationResponse {
 		this.processorRequirements = processorRequirements;
 	}
 
-	public String getMemoryrequirements() {
-		return memoryrequirements;
+	public String getMemoryRequirements() {
+		return memoryRequirements;
 	}
 
-	public void setMemoryrequirements(String memoryrequirements) {
-		this.memoryrequirements = memoryrequirements;
+	public void setMemoryRequirements(String memoryRequirements) {
+		this.memoryRequirements = memoryRequirements;
 	}
 
 	public String getStorageRequirements() {
@@ -194,15 +207,51 @@ public class SoftwareApplicationResponse {
 		this.operatingSystem = operatingSystem;
 	}
 
-	public String getKeywords() {
+	public List<String> getKeywords() {
 		return keywords;
 	}
 
-	public void setKeywords(String keywords) {
+	public void setKeywords(List<String> keywords) {
 		this.keywords = keywords;
 	}
 
 	public String getId() {
 		return this.id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public List<String> getDoi() {
+		return doi;
+	}
+
+	public void setDoi(List<String> doi) {
+		this.doi = doi;
+	}
+
+	public List<String> getIdentifiers() {
+		return identifiers;
+	}
+
+	public void setIdentifiers(List<String> identifiers) {
+		this.identifiers = identifiers;
+	}
+
+	public List<AvailableContactPoints> getAvailableContactPoints() {
+		return availableContactPoints;
+	}
+
+	public void setAvailableContactPoints(List<AvailableContactPoints> availableContactPoints) {
+		this.availableContactPoints = availableContactPoints;
+	}
+
+	public Node getCategories() {
+		return categories;
+	}
+
+	public void setCategories(Node categories) {
+		this.categories = categories;
 	}
 }

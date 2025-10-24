@@ -1,8 +1,11 @@
 package org.epos.api.beans.software;
 
-import org.epos.eposdatamodel.SoftwareSourceCode;
-
+import java.util.ArrayList;
 import java.util.List;
+
+import org.epos.api.beans.AvailableContactPoints;
+import org.epos.api.facets.Node;
+import org.epos.eposdatamodel.SoftwareSourceCode;
 
 public class SoftwareSourceCodeResponse {
 
@@ -11,18 +14,22 @@ public class SoftwareSourceCodeResponse {
 	private String codeRepository;
 	private String downloadURL;
 	private String licenseURL;
-	private String mainEntityofPage;
-	private List<String> programmingLanguage;
+	private String mainEntityOfPage;
 	private String runtimePlatform;
 	private String softwareVersion;
 	private String softwareStatus;
 	private String spatial;
 	private String temporal;
-	private String keywords;
-	private List<String> citation;
 	private String size;
 	private String timeRequired;
+	private List<String> programmingLanguage;
+	private List<String> keywords;
+	private List<String> citation;
 	private String id;
+	private List<String> doi;
+	private List<String> identifiers;
+	private List<AvailableContactPoints> availableContactPoints;
+	private Node categories;
 
 	public SoftwareSourceCodeResponse(SoftwareSourceCode softwareSourceCode) {
 		this.name = softwareSourceCode.getName();
@@ -30,18 +37,56 @@ public class SoftwareSourceCodeResponse {
 		this.codeRepository = softwareSourceCode.getCodeRepository();
 		this.downloadURL = softwareSourceCode.getDownloadURL();
 		this.licenseURL = softwareSourceCode.getLicenseURL();
-		this.mainEntityofPage = softwareSourceCode.getMainEntityofPage();
+		this.mainEntityOfPage = softwareSourceCode.getMainEntityofPage();
 		this.programmingLanguage = softwareSourceCode.getProgrammingLanguage();
 		this.runtimePlatform = softwareSourceCode.getRuntimePlatform();
 		this.softwareVersion = softwareSourceCode.getSoftwareVersion();
 		this.softwareStatus = softwareSourceCode.getSoftwareStatus();
 		this.spatial = softwareSourceCode.getSpatial();
 		this.temporal = softwareSourceCode.getTemporal();
-		this.keywords = softwareSourceCode.getKeywords();
+		// Keywords will be set by the generation class
+		this.keywords = null;
 		this.citation = softwareSourceCode.getCitation();
 		this.size = softwareSourceCode.getSize();
 		this.timeRequired = softwareSourceCode.getTimeRequired();
 		this.id = softwareSourceCode.getInstanceId();
+		this.availableContactPoints = new ArrayList<>();
+	}
+
+	public SoftwareSourceCodeResponse() {
+		this.availableContactPoints = new ArrayList<>();
+	}
+
+	public List<String> getDoi() {
+		return doi;
+	}
+
+	public void setDoi(List<String> doi) {
+		this.doi = doi;
+	}
+
+	public List<String> getIdentifiers() {
+		return identifiers;
+	}
+
+	public void setIdentifiers(List<String> identifiers) {
+		this.identifiers = identifiers;
+	}
+
+	public List<AvailableContactPoints> getAvailableContactPoints() {
+		return availableContactPoints;
+	}
+
+	public void setAvailableContactPoints(List<AvailableContactPoints> availableContactPoints) {
+		this.availableContactPoints = availableContactPoints;
+	}
+
+	public Node getCategories() {
+		return categories;
+	}
+
+	public void setCategories(Node categories) {
+		this.categories = categories;
 	}
 
 	public String getName() {
@@ -84,12 +129,12 @@ public class SoftwareSourceCodeResponse {
 		this.licenseURL = licenseURL;
 	}
 
-	public String getMainEntityofPage() {
-		return mainEntityofPage;
+	public String getMainEntityOfPage() {
+		return mainEntityOfPage;
 	}
 
-	public void setMainEntityofPage(String mainEntityofPage) {
-		this.mainEntityofPage = mainEntityofPage;
+	public void setMainEntityOfPage(String mainEntityOfPage) {
+		this.mainEntityOfPage = mainEntityOfPage;
 	}
 
 	public List<String> getProgrammingLanguage() {
@@ -140,11 +185,11 @@ public class SoftwareSourceCodeResponse {
 		this.temporal = temporal;
 	}
 
-	public String getKeywords() {
+	public List<String> getKeywords() {
 		return keywords;
 	}
 
-	public void setKeywords(String keywords) {
+	public void setKeywords(List<String> keywords) {
 		this.keywords = keywords;
 	}
 
@@ -174,5 +219,9 @@ public class SoftwareSourceCodeResponse {
 
 	public String getId() {
 		return this.id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
 	}
 }

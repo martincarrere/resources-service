@@ -1,5 +1,6 @@
 package org.epos.api.beans.software;
 
+import org.epos.api.core.software.SoftwareApplicationGenerationJPA;
 import org.epos.eposdatamodel.SoftwareApplication;
 
 public class SoftwareApplicationDetails extends SoftwareDetailsResponse {
@@ -7,7 +8,7 @@ public class SoftwareApplicationDetails extends SoftwareDetailsResponse {
 
 	public SoftwareApplicationDetails(SoftwareApplication softwareApplication) {
 		super("software_application");
-		this.object = new SoftwareApplicationResponse(softwareApplication);
+		this.object = SoftwareApplicationGenerationJPA.generate(softwareApplication);
 	}
 
 	public SoftwareApplicationResponse getObject() {

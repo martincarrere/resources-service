@@ -1,5 +1,6 @@
 package org.epos.api.beans.software;
 
+import org.epos.api.core.software.SoftwareSourceCodeGenerationJPA;
 import org.epos.eposdatamodel.SoftwareSourceCode;
 
 public class SoftwareSourceCodeDetails extends SoftwareDetailsResponse {
@@ -7,7 +8,7 @@ public class SoftwareSourceCodeDetails extends SoftwareDetailsResponse {
 
 	public SoftwareSourceCodeDetails(SoftwareSourceCode softwareSourceCode) {
 		super("software_source_code");
-		this.object = new SoftwareSourceCodeResponse(softwareSourceCode);
+		this.object = SoftwareSourceCodeGenerationJPA.generate(softwareSourceCode);
 	}
 
 	public SoftwareSourceCodeResponse getObject() {
