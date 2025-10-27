@@ -340,7 +340,7 @@ public class DistributionFilterSearch {
 				if (edmDataproduct.getIdentifier()!=null && !edmDataproduct.getIdentifier().isEmpty()) {
 					for (LinkedEntity linkedEntity : edmDataproduct.getIdentifier()) {
 						Identifier edmIdentifier = (Identifier) AbstractAPI.retrieveAPI(EntityNames.IDENTIFIER.name()).retrieve(linkedEntity.getInstanceId());
-						if(Objects.nonNull(edmIdentifier)){
+						if(Objects.nonNull(edmIdentifier) && edmIdentifier.getIdentifier() != null && edmIdentifier.getType() != null){
 							for (String q : qSMap.keySet()) {
 								if (edmIdentifier.getIdentifier().toLowerCase().contains(q)) qSMap.put(q, Boolean.TRUE);
 								if (edmIdentifier.getType().toLowerCase().contains(q)) qSMap.put(q, Boolean.TRUE);
