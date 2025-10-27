@@ -31,7 +31,8 @@ public class SoftwareSourceCodeGenerationJPA {
 		response.setName(softwareSourceCode.getName());
 		response.setDescription(softwareSourceCode.getDescription());
 		response.setCodeRepository(softwareSourceCode.getCodeRepository());
-		response.setDownloadURL(softwareSourceCode.getDownloadURL());
+		// download url is not part of the EPOS-DCAT-AP model for SoftwareSourceCode, why is it here?
+		// response.setDownloadURL(softwareSourceCode.getDownloadURL());
 		response.setLicenseURL(softwareSourceCode.getLicenseURL());
 		response.setMainEntityOfPage(softwareSourceCode.getMainEntityofPage());
 		response.setProgrammingLanguage(softwareSourceCode.getProgrammingLanguage());
