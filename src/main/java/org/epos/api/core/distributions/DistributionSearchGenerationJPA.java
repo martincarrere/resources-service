@@ -1,14 +1,7 @@
 package org.epos.api.core.distributions;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import abstractapis.AbstractAPI;
@@ -36,289 +29,470 @@ import org.slf4j.LoggerFactory;
 
 import model.StatusType;
 
+/**
+ * Optimized version of DistributionSearchGenerationJPA with:
+ * - Pre-fetching of all linked entities (eliminates N+1 query problem)
+ * - Parallel stream processing
+ * - Thread-safe collections
+ * - Performance logging
+ * - Reduced memory allocations
+ */
 public class DistributionSearchGenerationJPA {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(DistributionSearchGenerationJPA.class);
-	private static final String API_PATH_DETAILS = EnvironmentVariables.API_CONTEXT + "/resources/details/";
-	private static final String PARAMETER__SCIENCE_DOMAIN = "sciencedomains";
-	private static final String PARAMETER__SERVICE_TYPE = "servicetypes";
+    private static final Logger LOGGER = LoggerFactory.getLogger(DistributionSearchGenerationJPA.class);
+    private static final String API_PATH_DETAILS = EnvironmentVariables.API_CONTEXT + "/resources/details/";
+    private static final String PARAMETER__SCIENCE_DOMAIN = "sciencedomains";
+    private static final String PARAMETER__SERVICE_TYPE = "servicetypes";
 
-	public static SearchResponse generate(Map<String, Object> parameters, User user) {
-		LOGGER.info("Requests start - JPA method");
-		long startTime = System.currentTimeMillis();
+    public static SearchResponse generate(Map<String, Object> parameters, User user) {
+        LOGGER.info("Requests start - JPA method (OPTIMIZED)");
+        long startTime = System.currentTimeMillis();
 
-		// user will be not null only if the user is a member of the backoffice
-		boolean isBackofficeUser = user != null;
+        // Step 1: Determine access level and versions
+        boolean isBackofficeUser = user != null;
+        List<StatusType> versions = getVersions(parameters, isBackofficeUser);
 
-		List<StatusType> versions = new ArrayList<>();
+        // Step 2: Retrieve and filter dataproducts
+        long retrievalStart = System.currentTimeMillis();
+        Map<String, User> userMap = DatabaseConnections.retrieveUserMap();
 
-		if (isBackofficeUser && parameters.containsKey("versioningStatus")) {
-			Arrays.stream(parameters.get("versioningStatus").toString().split(",")).forEach(version -> {
-				versions.add(StatusType.valueOf(version));
-			});
-		} else {
-			versions.add(StatusType.PUBLISHED);
-		}
+        List<DataProduct> dataproducts = ((List<DataProduct>) AbstractAPI
+                .retrieveAPI(EntityNames.DATAPRODUCT.name())
+                .retrieveAll())
+                .parallelStream()
+                .filter(dp -> dp != null && shouldIncludeDataProduct(dp, versions, isBackofficeUser, user))
+                .collect(Collectors.toList());
 
-		List<DataProduct> dataproducts = new ArrayList<>();
-		Map<String, User> userMap = DatabaseConnections.retrieveUserMap();
-		//Map<String, List<AvailableFormat>> formats = AvailableFormatsGeneration.getFormats();
+        LOGGER.info("[PERF] Data retrieval: {} ms ({} dataproducts)",
+                System.currentTimeMillis() - retrievalStart, dataproducts.size());
 
-		//for (DataProduct dataProduct : DatabaseConnections.getInstance().getDataproducts()) {
-		for (DataProduct dataProduct : (List<DataProduct>) AbstractAPI.retrieveAPI(EntityNames.DATAPRODUCT.name()).retrieveAll()){
-			if (dataProduct != null) {
-				if (versions.contains(StatusType.PUBLISHED) && dataProduct.getStatus().equals(StatusType.PUBLISHED)) {
-					dataproducts.add(dataProduct);
-					continue;
-				}
-				// If the user exists and in the query parameters there is the status of the
-				// current dataProduct
-				if (isBackofficeUser && user != null && versions.contains(dataProduct.getStatus())) {
-					// If the user is an admin or the editor of this dataproducts
-					if (user.getIsAdmin() || dataProduct.getEditorId().equals(user.getAuthIdentifier())) {
-						LOGGER.debug("[VersioningStatus] Found dataproduct {} {} {} {}", dataProduct.getEditorId(),
-								user.getAuthIdentifier(), dataProduct.getStatus(), dataProduct.getInstanceId());
-						// show it
-						dataproducts.add(dataProduct);
-					}
-				}
-			}
-		}
+        // Step 3: Apply filters
+        long filterStart = System.currentTimeMillis();
+        LOGGER.info("Apply filter using input parameters: {}", parameters.toString());
+        dataproducts = DistributionFilterSearch.doFilters(dataproducts, parameters);
+        LOGGER.info("[PERF] Filtering: {} ms ({} dataproducts remaining)",
+                System.currentTimeMillis() - filterStart, dataproducts.size());
 
-		//List<Category> categoryList1 = (List<Category>) AbstractAPI.retrieveAPI(EntityNames.CATEGORY.name()).retrieveAll();
+        // Step 4: Pre-fetch all linked entities (CRITICAL OPTIMIZATION)
+        long prefetchStart = System.currentTimeMillis();
+        PreFetchedEntities preFetched = preFetchLinkedEntities(dataproducts);
+        LOGGER.info("[PERF] Pre-fetching entities: {} ms", System.currentTimeMillis() - prefetchStart);
 
-		LOGGER.info("Apply filter using input parameters: {}", parameters.toString());
-		// Apply filtering
-		dataproducts = DistributionFilterSearch.doFilters(dataproducts, parameters);
+        // Step 5: Process dataproducts in parallel with thread-safe collections
+        long processingStart = System.currentTimeMillis();
+        Set<DiscoveryItem> discoveryMap = ConcurrentHashMap.newKeySet();
+        Set<String> keywords = ConcurrentHashMap.newKeySet();
+        Set<Category> scienceDomains = ConcurrentHashMap.newKeySet();
+        Set<Category> serviceTypes = ConcurrentHashMap.newKeySet();
+        Set<Organization> organizationsEntityIds = ConcurrentHashMap.newKeySet();
 
-		Set<DiscoveryItem> discoveryMap = new HashSet<DiscoveryItem>();
+        LOGGER.info("Start parallel processing of {} dataproducts", dataproducts.size());
 
-		LOGGER.info("Start for each");
+        dataproducts.parallelStream().forEach(dataproduct -> {
+            processDataProduct(dataproduct, preFetched, discoveryMap, keywords,
+                    scienceDomains, serviceTypes, organizationsEntityIds,
+                    parameters, isBackofficeUser, userMap);
+        });
 
-		Set<String> keywords = new HashSet<>();
-		Set<Category> scienceDomains = new HashSet<>();
-		Set<Category> serviceTypes = new HashSet<>();
-		Set<Organization> organizationsEntityIds = new HashSet<>();
+        LOGGER.info("[PERF] Processing: {} ms", System.currentTimeMillis() - processingStart);
+        LOGGER.info("Final number of results: {}", discoveryMap.size());
 
-		for (var dataproduct : dataproducts) {
-			Set<String> facetsDataProviders = new HashSet<>();
-			List<String> categoryList = new ArrayList<>();
+        // Step 6: Build response
+        long responseStart = System.currentTimeMillis();
+        SearchResponse response = buildResponse(discoveryMap, keywords, organizationsEntityIds,
+                scienceDomains, serviceTypes, parameters);
+        LOGGER.info("[PERF] Response building: {} ms", System.currentTimeMillis() - responseStart);
 
-			// DATA PRODUCT
-			if (dataproduct.getCategory() != null) {
-				for (var linkedEntity : dataproduct.getCategory()) {
-					Category category = (Category) LinkedEntityAPI.retrieveFromLinkedEntity(linkedEntity);
-					if (Objects.nonNull(category)) {
-						if (category.getUid().contains("category:"))
-							categoryList.add(category.getUid());
-						else {
-							scienceDomains.add(category);
-						}
-					}
-				}
-			}
+        long endTime = System.currentTimeMillis();
+        long duration = (endTime - startTime);
+        LOGGER.info("[PERF] TOTAL: {} ms", duration);
 
-			if (dataproduct.getPublisher() != null) {
-				for (var linkedEntity : dataproduct.getPublisher()) {
-					Organization organization = (Organization) LinkedEntityAPI.retrieveFromLinkedEntity(linkedEntity);
-					if (Objects.nonNull(organization)) {
-						if (organization.getLegalName() != null) {
-							facetsDataProviders.add(String.join(",", organization.getLegalName()));
-						}
-						organizationsEntityIds.add(organization);
-					}
-				}
-			}
+        return response;
+    }
 
-			// Keywords
-			keywords.addAll(Arrays.stream(Optional.ofNullable(dataproduct.getKeywords())
-					.orElse("").split(",\t"))
-					.map(String::toLowerCase)
-					.map(String::trim)
-					.collect(Collectors.toSet()));
+    /**
+     * Determines which versions to include based on user permissions
+     */
+    private static List<StatusType> getVersions(Map<String, Object> parameters, boolean isBackofficeUser) {
+        List<StatusType> versions = new ArrayList<>();
+        if (isBackofficeUser && parameters.containsKey("versioningStatus")) {
+            Arrays.stream(parameters.get("versioningStatus").toString().split(","))
+                    .forEach(version -> versions.add(StatusType.valueOf(version)));
+        } else {
+            versions.add(StatusType.PUBLISHED);
+        }
+        return versions;
+    }
 
-			if (dataproduct.getDistribution() == null) {
-				continue;
-			}
+    /**
+     * Checks if a dataproduct should be included based on status and user permissions
+     */
+    private static boolean shouldIncludeDataProduct(DataProduct dp, List<StatusType> versions,
+                                                    boolean isBackofficeUser, User user) {
+        if (versions.contains(StatusType.PUBLISHED) && dp.getStatus().equals(StatusType.PUBLISHED)) {
+            return true;
+        }
+        if (isBackofficeUser && user != null && versions.contains(dp.getStatus())) {
+            return user.getIsAdmin() || dp.getEditorId().equals(user.getAuthIdentifier());
+        }
+        return false;
+    }
 
-			for (var linkedEntity : dataproduct.getDistribution()) {
-				Distribution distribution = (Distribution) LinkedEntityAPI.retrieveFromLinkedEntity(linkedEntity);
-				if (Objects.isNull(distribution)) {
-					continue;
-				}
+    /**
+     * Pre-fetches ALL linked entities to eliminate N+1 query problem
+     * This is the most critical optimization - replaces thousands of individual queries with batch fetches
+     */
+    private static PreFetchedEntities preFetchLinkedEntities(List<DataProduct> dataproducts) {
+        PreFetchedEntities entities = new PreFetchedEntities();
 
-				Set<String> facetsServiceProviders = new HashSet<>();
+        // Collect all IDs that need to be fetched
+        Set<String> categoryIds = ConcurrentHashMap.newKeySet();
+        Set<String> organizationIds = ConcurrentHashMap.newKeySet();
+        Set<String> distributionIds = ConcurrentHashMap.newKeySet();
 
-				// AVAILABLE FORMATS
-				List<AvailableFormat> availableFormats = AvailableFormatsGeneration.generate(distribution);//formats.get(distribution.getInstanceId());//AvailableFormatsGeneration.generate(distribution);
-                List<DataServiceProvider> dataServiceProviderList = new ArrayList<>();
+        // Parallel collection of IDs
+        dataproducts.parallelStream().forEach(dp -> {
+            if (dp.getCategory() != null) {
+                dp.getCategory().forEach(le -> categoryIds.add(le.getInstanceId()));
+            }
+            if (dp.getPublisher() != null) {
+                dp.getPublisher().forEach(le -> organizationIds.add(le.getInstanceId()));
+            }
+            if (dp.getDistribution() != null) {
+                dp.getDistribution().forEach(le -> distributionIds.add(le.getInstanceId()));
+            }
+        });
 
-				if (distribution.getAccessService() != null) {
-					distribution.getAccessService().forEach(linkedEntity1 -> {
-						WebService webService = (WebService) LinkedEntityAPI.retrieveFromLinkedEntity(linkedEntity1);
-						if (Objects.nonNull(webService)) {
-							if (webService.getProvider() != null) {
-								Organization organization = (Organization) LinkedEntityAPI.retrieveFromLinkedEntity(webService.getProvider());
-								if (Objects.nonNull(organization)) {
-									if (organization.getLegalName() != null)
-										facetsServiceProviders
-												.add(String.join(",", organization.getLegalName()));
-									organizationsEntityIds.add(organization);
-								}
-                                List<DataServiceProvider> serviceProviders = DataServiceProviderGeneration.getProviders(List.of(organization));
-                                if (!serviceProviders.isEmpty()){
-                                    dataServiceProviderList.add(serviceProviders.getFirst());
-                                }
-							}
-							// Service Types
-							if (webService.getCategory() != null) {
-								webService.getCategory()
-										.forEach(linkedEntity2 -> {
-											Category category = (Category) LinkedEntityAPI.retrieveFromLinkedEntity(linkedEntity2);
-											if(Objects.nonNull(category)) serviceTypes.add(category);
-										});
-							}
-						}
-					});
-				}
+        LOGGER.info("Pre-fetching: {} categories, {} organizations, {} distributions",
+                categoryIds.size(), organizationIds.size(), distributionIds.size());
 
+        // Batch fetch all entities
+        entities.categories = fetchBatch(EntityNames.CATEGORY, categoryIds);
+        entities.organizations = fetchBatch(EntityNames.ORGANIZATION, organizationIds);
+        entities.distributions = fetchBatch(EntityNames.DISTRIBUTION, distributionIds);
 
-				DiscoveryItemBuilder discoveryItemBuilder = new DiscoveryItemBuilder(distribution.getInstanceId(),
-						EnvironmentVariables.API_HOST + API_PATH_DETAILS + distribution.getInstanceId(),
-						EnvironmentVariables.API_HOST + API_PATH_DETAILS + distribution.getInstanceId()
-								+ "?extended=true")
-						.uid(distribution.getUid())
-						.metaId(distribution.getMetaId())
-						.title(distribution.getTitle() != null
-								? String.join(";", distribution.getTitle())
-								: null)
-						.description(distribution.getDescription() != null
-								? String.join(";", distribution.getDescription())
-								: null)
-                        .dataServiceProvider(dataServiceProviderList.isEmpty()?null:dataServiceProviderList.get(0))
-                        .availableFormats(availableFormats)
-						.sha256id(distribution.getUid() != null
-								? DigestUtils.sha256Hex(distribution.getUid())
-								: "")
-						.dataProvider(facetsDataProviders)
-						.serviceProvider(facetsServiceProviders)
-						.categories(categoryList.isEmpty()
-								? null
-								: categoryList);
+        // Collect web service IDs from distributions
+        Set<String> webServiceIds = ConcurrentHashMap.newKeySet();
+        entities.distributions.values().parallelStream()
+                .filter(obj -> obj instanceof Distribution)
+                .map(obj -> (Distribution) obj)
+                .filter(dist -> dist.getAccessService() != null)
+                .forEach(dist -> dist.getAccessService().forEach(le -> webServiceIds.add(le.getInstanceId())));
 
-				// if the user is part of the backoffice & it is a query for the versions
-				if (isBackofficeUser && parameters.containsKey("versioningStatus")) {
-					var editorId = distribution.getEditorId();
-					// if the editor is the ingestor
-					if (editorId.equals("ingestor")) {
-						discoveryItemBuilder.editorFullName("Ingestor");
-					} else { // if the editor is an user
-						var editor = userMap.get(distribution.getEditorId());
-						if (editor != null) { // unlikely but technically possible
-							discoveryItemBuilder.editorFullName(editor.getFirstName() + " " + editor.getLastName());
-						}
-					}
-					discoveryItemBuilder.editorId(editorId)
-							.changeDate(distribution.getChangeTimestamp())
-							.versioningStatus(dataproduct.getStatus().name());
-				}
+        LOGGER.info("Pre-fetching: {} web services", webServiceIds.size());
+        entities.webServices = fetchBatch(EntityNames.WEBSERVICE, webServiceIds);
 
-				var discoveryItem = discoveryItemBuilder.build();
+        // Collect organization IDs from web services
+        Set<String> additionalOrgIds = ConcurrentHashMap.newKeySet();
+        entities.webServices.values().parallelStream()
+                .filter(obj -> obj instanceof WebService)
+                .map(obj -> (WebService) obj)
+                .filter(ws -> ws.getProvider() != null)
+                .forEach(ws -> additionalOrgIds.add(ws.getProvider().getInstanceId()));
 
-				if (EnvironmentVariables.MONITORING != null && EnvironmentVariables.MONITORING.equals("true")) {
-					discoveryItem
-							.setStatus(ZabbixExecutor.getInstance().getStatusInfoFromSha(discoveryItem.getSha256id()));
-					discoveryItem.setStatusTimestamp(
-							ZabbixExecutor.getInstance().getStatusTimestampInfoFromSha(discoveryItem.getSha256id()));
-				}
+        // Fetch additional organizations
+        if (!additionalOrgIds.isEmpty()) {
+            LOGGER.info("Pre-fetching: {} additional organizations from web services", additionalOrgIds.size());
+            Map<String, Object> additionalOrgs = fetchBatch(EntityNames.ORGANIZATION, additionalOrgIds);
+            entities.organizations.putAll(additionalOrgs);
+        }
 
-				discoveryMap.add(discoveryItem);
-			}
-		}
+        // Collect category IDs from web services
+        Set<String> additionalCategoryIds = ConcurrentHashMap.newKeySet();
+        entities.webServices.values().parallelStream()
+                .filter(obj -> obj instanceof WebService)
+                .map(obj -> (WebService) obj)
+                .filter(ws -> ws.getCategory() != null)
+                .forEach(ws -> ws.getCategory().forEach(le -> additionalCategoryIds.add(le.getInstanceId())));
 
-		LOGGER.info("Final number of results: {}", discoveryMap.size());
+        // Fetch additional categories
+        if (!additionalCategoryIds.isEmpty()) {
+            LOGGER.info("Pre-fetching: {} additional categories from web services", additionalCategoryIds.size());
+            Map<String, Object> additionalCategories = fetchBatch(EntityNames.CATEGORY, additionalCategoryIds);
+            entities.categories.putAll(additionalCategories);
+        }
 
-		Node results = new Node("results");
-		if (parameters.containsKey("facets") && parameters.get("facets").toString().equals("true")) {
-			switch (parameters.get("facetstype").toString()) {
-				case "categories":
-					results.addChild(FacetsGeneration.generateResponseUsingCategories(discoveryMap, Facets.Type.DATA).getFacets());
-					break;
-				case "dataproviders":
-					results.addChild(FacetsGeneration.generateResponseUsingDataproviders(discoveryMap).getFacets());
-					break;
-				case "serviceproviders":
-					results.addChild(FacetsGeneration.generateResponseUsingServiceproviders(discoveryMap).getFacets());
-					break;
-				default:
-					break;
-			}
+        return entities;
+    }
 
-		} else {
-			Node child = new Node();
-			child.setDistributions(discoveryMap);
-			results.addChild(child);
-		}
+    /**
+     * Batch fetch helper that retrieves multiple entities in one call
+     */
+    private static Map<String, Object> fetchBatch(EntityNames entityName, Set<String> ids) {
+        if (ids.isEmpty()) {
+            return new ConcurrentHashMap<>();
+        }
 
-		LOGGER.info("Number of organizations retrieved {}", organizationsEntityIds.size());
+        List<String> idList = new ArrayList<>(ids);
+        List<?> results = (List<?>) AbstractAPI.retrieveAPI(entityName.name()).retrieveBunch(idList);
 
-		List<String> keywordsCollection = keywords.stream()
-				.filter(Objects::nonNull)
-				.sorted()
-				.collect(Collectors.toList());
+        Map<String, Object> map = new ConcurrentHashMap<>();
+        if (results != null) {
+            results.parallelStream()
+                    .filter(Objects::nonNull)
+                    .filter(obj -> obj instanceof EPOSDataModelEntity)
+                    .forEach(obj -> {
+                        EPOSDataModelEntity entity = (EPOSDataModelEntity) obj;
+                        map.put(entity.getInstanceId(), entity);
+                    });
+        }
+        return map;
+    }
 
-		NodeFilters keywordsNodes = new NodeFilters("keywords");
+    /**
+     * Process a single dataproduct using pre-fetched entities
+     */
+    private static void processDataProduct(DataProduct dataproduct, PreFetchedEntities preFetched,
+                                           Set<DiscoveryItem> discoveryMap, Set<String> keywords,
+                                           Set<Category> scienceDomains, Set<Category> serviceTypes,
+                                           Set<Organization> organizationsEntityIds,
+                                           Map<String, Object> parameters, boolean isBackofficeUser,
+                                           Map<String, User> userMap) {
 
-		keywordsCollection.forEach(r -> {
-			NodeFilters node = new NodeFilters(r);
-			node.setId(Base64.getEncoder().encodeToString(r.getBytes()));
-			keywordsNodes.addChild(node);
-		});
+        Set<String> facetsDataProviders = new HashSet<>();
+        List<String> categoryList = new ArrayList<>();
 
-		List<DataServiceProvider> collection = DataServiceProviderGeneration
-				.getProviders(new ArrayList<>(organizationsEntityIds));
+        // Process categories - using pre-fetched data
+        if (dataproduct.getCategory() != null) {
+            dataproduct.getCategory().forEach(le -> {
+                Category category = (Category) preFetched.categories.get(le.getInstanceId());
+                if (category != null) {
+                    if (category.getUid().contains("category:")) {
+                        categoryList.add(category.getUid());
+                    } else {
+                        scienceDomains.add(category);
+                    }
+                }
+            });
+        }
 
-		NodeFilters organisationsNodes = new NodeFilters("organisations");
+        // Process publishers - using pre-fetched data
+        if (dataproduct.getPublisher() != null) {
+            dataproduct.getPublisher().forEach(le -> {
+                Organization org = (Organization) preFetched.organizations.get(le.getInstanceId());
+                if (org != null && org.getLegalName() != null) {
+                    facetsDataProviders.add(String.join(",", org.getLegalName()));
+                    organizationsEntityIds.add(org);
+                }
+            });
+        }
 
-		collection.forEach(resource -> {
-			NodeFilters node = new NodeFilters(resource.getDataProviderLegalName());
-			node.setId(resource.getInstanceid());
-			organisationsNodes.addChild(node);
+        // Process keywords
+        if (dataproduct.getKeywords() != null && !dataproduct.getKeywords().isEmpty()) {
+            Arrays.stream(dataproduct.getKeywords().split(",\t"))
+                    .map(String::toLowerCase)
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .forEach(keywords::add);
+        }
 
-			resource.getRelatedDataProvider().forEach(relatedData -> {
-				NodeFilters relatedNodeDataProvider = new NodeFilters(relatedData.getDataProviderLegalName());
-				relatedNodeDataProvider.setId(relatedData.getInstanceid());
-				organisationsNodes.addChild(relatedNodeDataProvider);
-			});
-			resource.getRelatedDataServiceProvider().forEach(relatedDataService -> {
-				NodeFilters relatedNodeDataServiceProvider = new NodeFilters(
-						relatedDataService.getDataProviderLegalName());
-				relatedNodeDataServiceProvider.setId(relatedDataService.getInstanceid());
-				organisationsNodes.addChild(relatedNodeDataServiceProvider);
-			});
-		});
+        // Process distributions - using pre-fetched data
+        if (dataproduct.getDistribution() != null) {
+            dataproduct.getDistribution().forEach(le -> {
+                Distribution distribution = (Distribution) preFetched.distributions.get(le.getInstanceId());
+                if (distribution != null) {
+                    processDistribution(distribution, preFetched, discoveryMap, serviceTypes,
+                            organizationsEntityIds, facetsDataProviders, categoryList,
+                            parameters, isBackofficeUser, userMap, dataproduct);
+                }
+            });
+        }
+    }
 
-		NodeFilters scienceDomainsNodes = new NodeFilters(
-				PARAMETER__SCIENCE_DOMAIN);
-		scienceDomains.forEach(r -> scienceDomainsNodes.addChild(new NodeFilters(r.getInstanceId(), r.getName())));
+    /**
+     * Process a single distribution using pre-fetched entities
+     */
+    private static void processDistribution(Distribution distribution, PreFetchedEntities preFetched,
+                                            Set<DiscoveryItem> discoveryMap, Set<Category> serviceTypes,
+                                            Set<Organization> organizationsEntityIds,
+                                            Set<String> facetsDataProviders, List<String> categoryList,
+                                            Map<String, Object> parameters, boolean isBackofficeUser,
+                                            Map<String, User> userMap, DataProduct dataproduct) {
 
-		NodeFilters serviceTypesNodes = new NodeFilters(
-				PARAMETER__SERVICE_TYPE);
-		serviceTypes.forEach(r -> serviceTypesNodes.addChild(new NodeFilters(r.getInstanceId(), r.getName())));
+        Set<String> facetsServiceProviders = new HashSet<>();
 
-		ArrayList<NodeFilters> filters = new ArrayList<NodeFilters>();
-		filters.add(keywordsNodes);
-		filters.add(organisationsNodes);
-		filters.add(scienceDomainsNodes);
-		filters.add(serviceTypesNodes);
+        // Generate available formats
+        List<AvailableFormat> availableFormats = AvailableFormatsGeneration.generate(distribution);
+        List<DataServiceProvider> dataServiceProviderList = new ArrayList<>();
 
-		SearchResponse response = new SearchResponse(results, filters);
+        // Process access services - using pre-fetched data
+        if (distribution.getAccessService() != null) {
+            distribution.getAccessService().forEach(le -> {
+                WebService webService = (WebService) preFetched.webServices.get(le.getInstanceId());
+                if (webService != null) {
+                    // Process provider
+                    if (webService.getProvider() != null) {
+                        Organization org = (Organization) preFetched.organizations.get(
+                                webService.getProvider().getInstanceId());
+                        if (org != null) {
+                            if (org.getLegalName() != null) {
+                                facetsServiceProviders.add(String.join(",", org.getLegalName()));
+                            }
+                            organizationsEntityIds.add(org);
 
-		long endTime = System.currentTimeMillis();
-		long duration = (endTime - startTime);
+                            List<DataServiceProvider> providers = DataServiceProviderGeneration.getProviders(List.of(org));
+                            if (!providers.isEmpty()) {
+                                dataServiceProviderList.add(providers.get(0));
+                            }
+                        }
+                    }
 
-		LOGGER.info("Result done in ms: {}", duration);
+                    // Process service categories
+                    if (webService.getCategory() != null) {
+                        webService.getCategory().forEach(catLe -> {
+                            Category category = (Category) preFetched.categories.get(catLe.getInstanceId());
+                            if (category != null) {
+                                serviceTypes.add(category);
+                            }
+                        });
+                    }
+                }
+            });
+        }
 
-		return response;
-	}
+        // Build discovery item
+        DiscoveryItemBuilder discoveryItemBuilder = new DiscoveryItemBuilder(
+                distribution.getInstanceId(),
+                EnvironmentVariables.API_HOST + API_PATH_DETAILS + distribution.getInstanceId(),
+                EnvironmentVariables.API_HOST + API_PATH_DETAILS + distribution.getInstanceId() + "?extended=true")
+                .uid(distribution.getUid())
+                .metaId(distribution.getMetaId())
+                .title(distribution.getTitle() != null ? String.join(";", distribution.getTitle()) : null)
+                .description(distribution.getDescription() != null ? String.join(";", distribution.getDescription()) : null)
+                .dataServiceProvider(dataServiceProviderList.isEmpty() ? null : dataServiceProviderList.get(0))
+                .availableFormats(availableFormats)
+                .sha256id(distribution.getUid() != null ? DigestUtils.sha256Hex(distribution.getUid()) : "")
+                .dataProvider(facetsDataProviders)
+                .serviceProvider(facetsServiceProviders)
+                .categories(categoryList.isEmpty() ? null : categoryList);
+
+        // Add backoffice info if needed
+        if (isBackofficeUser && parameters.containsKey("versioningStatus")) {
+            String editorId = distribution.getEditorId();
+            if ("ingestor".equals(editorId)) {
+                discoveryItemBuilder.editorFullName("Ingestor");
+            } else {
+                User editor = userMap.get(editorId);
+                if (editor != null) {
+                    discoveryItemBuilder.editorFullName(editor.getFirstName() + " " + editor.getLastName());
+                }
+            }
+            discoveryItemBuilder.editorId(editorId)
+                    .changeDate(distribution.getChangeTimestamp())
+                    .versioningStatus(dataproduct.getStatus().name());
+        }
+
+        DiscoveryItem discoveryItem = discoveryItemBuilder.build();
+
+        // Add monitoring info if enabled
+        if (EnvironmentVariables.MONITORING != null && EnvironmentVariables.MONITORING.equals("true")) {
+            discoveryItem.setStatus(ZabbixExecutor.getInstance().getStatusInfoFromSha(discoveryItem.getSha256id()));
+            discoveryItem.setStatusTimestamp(
+                    ZabbixExecutor.getInstance().getStatusTimestampInfoFromSha(discoveryItem.getSha256id()));
+        }
+
+        discoveryMap.add(discoveryItem);
+    }
+
+    /**
+     * Build the final search response with results and filters
+     */
+    private static SearchResponse buildResponse(Set<DiscoveryItem> discoveryMap, Set<String> keywords,
+                                                Set<Organization> organizationsEntityIds,
+                                                Set<Category> scienceDomains, Set<Category> serviceTypes,
+                                                Map<String, Object> parameters) {
+
+        Node results = new Node("results");
+
+        // Build facets or regular results
+        if (parameters.containsKey("facets") && parameters.get("facets").toString().equals("true")) {
+            String facetsType = parameters.get("facetstype").toString();
+            switch (facetsType) {
+                case "categories":
+                    results.addChild(FacetsGeneration.generateResponseUsingCategories(discoveryMap, Facets.Type.DATA).getFacets());
+                    break;
+                case "dataproviders":
+                    results.addChild(FacetsGeneration.generateResponseUsingDataproviders(discoveryMap).getFacets());
+                    break;
+                case "serviceproviders":
+                    results.addChild(FacetsGeneration.generateResponseUsingServiceproviders(discoveryMap).getFacets());
+                    break;
+                default:
+                    Node child = new Node();
+                    child.setDistributions(discoveryMap);
+                    results.addChild(child);
+                    break;
+            }
+        } else {
+            Node child = new Node();
+            child.setDistributions(discoveryMap);
+            results.addChild(child);
+        }
+
+        LOGGER.info("Number of organizations retrieved: {}", organizationsEntityIds.size());
+
+        // Build keywords filter
+        List<String> keywordsCollection = keywords.stream()
+                .filter(Objects::nonNull)
+                .sorted()
+                .collect(Collectors.toList());
+
+        NodeFilters keywordsNodes = new NodeFilters("keywords");
+        keywordsCollection.forEach(keyword -> {
+            NodeFilters node = new NodeFilters(keyword);
+            node.setId(Base64.getEncoder().encodeToString(keyword.getBytes()));
+            keywordsNodes.addChild(node);
+        });
+
+        // Build organizations filter
+        List<DataServiceProvider> collection = DataServiceProviderGeneration
+                .getProviders(new ArrayList<>(organizationsEntityIds));
+
+        NodeFilters organisationsNodes = new NodeFilters("organisations");
+        collection.forEach(resource -> {
+            NodeFilters node = new NodeFilters(resource.getDataProviderLegalName());
+            node.setId(resource.getInstanceid());
+            organisationsNodes.addChild(node);
+
+            resource.getRelatedDataProvider().forEach(relatedData -> {
+                NodeFilters relatedNodeDataProvider = new NodeFilters(relatedData.getDataProviderLegalName());
+                relatedNodeDataProvider.setId(relatedData.getInstanceid());
+                organisationsNodes.addChild(relatedNodeDataProvider);
+            });
+
+            resource.getRelatedDataServiceProvider().forEach(relatedDataService -> {
+                NodeFilters relatedNodeDataServiceProvider = new NodeFilters(
+                        relatedDataService.getDataProviderLegalName());
+                relatedNodeDataServiceProvider.setId(relatedDataService.getInstanceid());
+                organisationsNodes.addChild(relatedNodeDataServiceProvider);
+            });
+        });
+
+        // Build science domains filter
+        NodeFilters scienceDomainsNodes = new NodeFilters(PARAMETER__SCIENCE_DOMAIN);
+        scienceDomains.forEach(r -> scienceDomainsNodes.addChild(new NodeFilters(r.getInstanceId(), r.getName())));
+
+        // Build service types filter
+        NodeFilters serviceTypesNodes = new NodeFilters(PARAMETER__SERVICE_TYPE);
+        serviceTypes.forEach(r -> serviceTypesNodes.addChild(new NodeFilters(r.getInstanceId(), r.getName())));
+
+        // Combine all filters
+        ArrayList<NodeFilters> filters = new ArrayList<>();
+        filters.add(keywordsNodes);
+        filters.add(organisationsNodes);
+        filters.add(scienceDomainsNodes);
+        filters.add(serviceTypesNodes);
+
+        return new SearchResponse(results, filters);
+    }
+
+    /**
+     * Container class for pre-fetched entities
+     */
+    private static class PreFetchedEntities {
+        Map<String, Object> categories = new ConcurrentHashMap<>();
+        Map<String, Object> organizations = new ConcurrentHashMap<>();
+        Map<String, Object> distributions = new ConcurrentHashMap<>();
+        Map<String, Object> webServices = new ConcurrentHashMap<>();
+    }
 }
