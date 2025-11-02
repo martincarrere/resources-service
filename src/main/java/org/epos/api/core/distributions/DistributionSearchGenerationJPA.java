@@ -142,7 +142,7 @@ public class DistributionSearchGenerationJPA {
      * Pre-fetches ALL linked entities to eliminate N+1 query problem
      * This is the most critical optimization - replaces thousands of individual queries with batch fetches
      */
-    private static PreFetchedEntities preFetchLinkedEntities(List<DataProduct> dataproducts) {
+    public static PreFetchedEntities preFetchLinkedEntities(List<DataProduct> dataproducts) {
         PreFetchedEntities entities = new PreFetchedEntities();
 
         // Collect all IDs that need to be fetched
