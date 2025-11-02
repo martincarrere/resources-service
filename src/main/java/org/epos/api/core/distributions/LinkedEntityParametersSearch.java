@@ -1,14 +1,12 @@
 package org.epos.api.core.distributions;
 
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import abstractapis.AbstractAPI;
 import metadataapis.EntityNames;
 import org.epos.api.beans.Parameter;
 import org.epos.api.beans.ParametersResponse;
-import org.epos.api.routines.DatabaseConnections;
 import org.epos.eposdatamodel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,67 +14,92 @@ import org.slf4j.LoggerFactory;
 import commonapis.LinkedEntityAPI;
 
 public class LinkedEntityParametersSearch {
-	private static final Logger LOGGER = LoggerFactory.getLogger(LinkedEntityParametersSearch.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LinkedEntityParametersSearch.class);
 
-	public static ParametersResponse generate(String id) {
-		LOGGER.info("Starting parameter search for distribution id: {}", id);
+    public static ParametersResponse generate(String id) {
+        long startTime = System.currentTimeMillis();
+        LOGGER.info("Starting parameter search (OPTIMIZED) for distribution id: {}", id);
 
-		// find the distribution
-		var distribution = (Distribution) AbstractAPI.retrieveAPI(EntityNames.DISTRIBUTION.name()).retrieve(id);
+        // Find the distribution
+        long retrievalStart = System.currentTimeMillis();
+        Distribution distribution = (Distribution) AbstractAPI
+                .retrieveAPI(EntityNames.DISTRIBUTION.name())
+                .retrieve(id);
 
-		if (distribution == null || distribution.getSupportedOperation() == null
-				|| distribution.getSupportedOperation().isEmpty()) {
-			LOGGER.warn("Distribution {} not found or has no supported operations.", id);
-			return null;
-		}
-		LOGGER.debug("Found distribution {} with supported operations.", id);
+        if (distribution == null || distribution.getSupportedOperation() == null
+                || distribution.getSupportedOperation().isEmpty()) {
+            LOGGER.warn("Distribution {} not found or has no supported operations.", id);
+            return null;
+        }
+        LOGGER.info("[PERF] Distribution retrieval: {} ms", System.currentTimeMillis() - retrievalStart);
+        LOGGER.debug("Found distribution {} with supported operations.", id);
 
-		// assuming only one operation for a distribution
-		Operation operation = null;
-		try {
-			operation = (Operation) LinkedEntityAPI
-					.retrieveFromLinkedEntity(distribution.getSupportedOperation().get(0));
-		} catch (Exception e) {
-			LOGGER.error("Error while retreiving operation from linked entity");
-		}
-		LOGGER.debug("Using operation id {} for distribution {}.", operation.getInstanceId(), id);
+        // Get operation (assuming only one operation for a distribution)
+        long operationStart = System.currentTimeMillis();
+        Operation operation = null;
+        try {
+            operation = (Operation) LinkedEntityAPI
+                    .retrieveFromLinkedEntity(distribution.getSupportedOperation().get(0));
+        } catch (Exception e) {
+            LOGGER.error("Error while retrieving operation from linked entity for distribution {}", id, e);
+            return null;
+        }
 
-		if (operation == null || operation.getPayload() == null || operation.getPayload().isEmpty()) {
-			LOGGER.warn("Operation {} not found or has no payload for distribution {}.", operation.getInstanceId(), id);
-			return null;
-		}
-		LOGGER.debug("Operation {} found with payload.", operation.getInstanceId());
+        if (operation == null || operation.getPayload() == null || operation.getPayload().isEmpty()) {
+            LOGGER.warn("Operation not found or has no payload for distribution {}.", id);
+            return null;
+        }
+        LOGGER.info("[PERF] Operation retrieval: {} ms", System.currentTimeMillis() - operationStart);
+        LOGGER.debug("Using operation id {} for distribution {}.", operation.getInstanceId(), id);
 
-		// assuming only one payload for an operation
-		String payloadId = operation.getPayload().get(0).getInstanceId();
-		LOGGER.debug("Using payload id {} for operation {}.", payloadId, operation.getInstanceId());
+        // Get payload (assuming only one payload for an operation)
+        long payloadStart = System.currentTimeMillis();
+        String payloadId = operation.getPayload().get(0).getInstanceId();
+        LOGGER.debug("Using payload id {} for operation {}.", payloadId, operation.getInstanceId());
 
-		// find the payload
-		var payload =  (Payload) AbstractAPI.retrieveAPI(EntityNames.PAYLOAD.name()).retrieve(payloadId);
+        Payload payload = (Payload) AbstractAPI.retrieveAPI(EntityNames.PAYLOAD.name()).retrieve(payloadId);
 
-		if (payload == null || payload.getOutputMapping() == null) {
-			LOGGER.warn("Payload {} not found or has no output mapping for operation {}.", payloadId,
-					operation.getInstanceId());
-			return null;
-		}
-		LOGGER.debug("Payload {} found with output mappings.", payloadId);
+        if (payload == null || payload.getOutputMapping() == null || payload.getOutputMapping().isEmpty()) {
+            LOGGER.warn("Payload {} not found or has no output mapping for operation {}.",
+                    payloadId, operation.getInstanceId());
+            return null;
+        }
+        LOGGER.info("[PERF] Payload retrieval: {} ms", System.currentTimeMillis() - payloadStart);
+        LOGGER.debug("Payload {} found with {} output mappings.", payloadId, payload.getOutputMapping().size());
 
-		// get the output mappings for this payload
-		var parameters = new HashSet<Parameter>();
-		var relevantMappingIds = payload.getOutputMapping().stream()
-				.map(mapping -> mapping.getInstanceId())
-				.collect(Collectors.toSet());
-		LOGGER.debug("Relevant mapping ids: {}", relevantMappingIds);
+        // CRITICAL OPTIMIZATION - Batch fetch only relevant mappings instead of retrieveAll()
+        long mappingStart = System.currentTimeMillis();
+        Set<String> relevantMappingIds = payload.getOutputMapping().stream()
+                .map(LinkedEntity::getInstanceId)
+                .collect(Collectors.toSet());
+        LOGGER.debug("Relevant mapping ids ({}): {}", relevantMappingIds.size(), relevantMappingIds);
 
-		// create the parameters only for the relevant mappings
-		((List<OutputMapping>) AbstractAPI.retrieveAPI(EntityNames.OUTPUTMAPPING.name()).retrieveAll()).stream()
-				.filter(mapping -> relevantMappingIds.contains(mapping.getInstanceId()))
-				.forEach(mapping -> {
-					parameters.add(new Parameter(mapping.getOutputProperty(), mapping.getOutputVariable()));
-					LOGGER.debug("Added parameter: {} -> {}", mapping.getOutputProperty(), mapping.getOutputVariable());
-				});
+        // BEFORE: retrieveAll() loads ALL mappings, then filters (SLOW)
+        // AFTER: retrieveBunch() fetches only needed mappings (FAST)
+        Set<Parameter> parameters = new HashSet<>();
+        if (!relevantMappingIds.isEmpty()) {
+            List<OutputMapping> outputMappings = (List<OutputMapping>) AbstractAPI
+                    .retrieveAPI(EntityNames.OUTPUTMAPPING.name())
+                    .retrieveBunch(new ArrayList<>(relevantMappingIds));
 
-		LOGGER.info("Successfully found {} parameters for distribution id {}.", parameters.size(), id);
-		return new ParametersResponse(parameters);
-	}
+            if (outputMappings != null) {
+                outputMappings.stream()
+                        .filter(Objects::nonNull)
+                        .forEach(mapping -> {
+                            parameters.add(new Parameter(mapping.getOutputProperty(), mapping.getOutputVariable()));
+                            LOGGER.debug("Added parameter: {} -> {}",
+                                    mapping.getOutputProperty(), mapping.getOutputVariable());
+                        });
+            }
+        }
+
+        LOGGER.info("[PERF] Output mapping retrieval and processing: {} ms",
+                System.currentTimeMillis() - mappingStart);
+
+        long endTime = System.currentTimeMillis();
+        LOGGER.info("[PERF] TOTAL: {} ms - Successfully found {} parameters for distribution id {}.",
+                endTime - startTime, parameters.size(), id);
+
+        return new ParametersResponse(parameters);
+    }
 }

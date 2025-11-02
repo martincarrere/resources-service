@@ -59,7 +59,7 @@ public class DistributionDetailsExtendedGenerationJPA {
         long startTime = System.currentTimeMillis();
         LOGGER.info("Generating extended distribution details (OPTIMIZED) for parameters: {}", parameters);
 
-        // Step 1: Retrieve main distribution
+        //  Retrieve main distribution
         long retrievalStart = System.currentTimeMillis();
         Distribution distributionSelected = (Distribution) AbstractAPI
                 .retrieveAPI(EntityNames.DISTRIBUTION.name())
@@ -71,7 +71,7 @@ public class DistributionDetailsExtendedGenerationJPA {
         }
         LOGGER.info("[PERF] Distribution retrieval: {} ms", System.currentTimeMillis() - retrievalStart);
 
-        // Step 2: Get operations related to distribution
+        // Get operations related to distribution
         List<String> operationsIdRelatedToDistribution = null;
         if (distributionSelected.getSupportedOperation() != null) {
             operationsIdRelatedToDistribution = distributionSelected.getSupportedOperation().stream()
@@ -79,26 +79,26 @@ public class DistributionDetailsExtendedGenerationJPA {
                     .collect(Collectors.toList());
         }
 
-        // Step 3: Retrieve DataProduct
+        // Retrieve DataProduct
         org.epos.eposdatamodel.DataProduct dp = getDataProduct(distributionSelected);
         if (dp == null) {
             LOGGER.warn("DataProduct not found for distribution: {}", distributionSelected.getInstanceId());
             return null;
         }
 
-        // Step 4: Retrieve WebService
+        // Retrieve WebService
         WebService ws = getWebService(distributionSelected);
         if (ws == null && distributionSelected.getAccessService() != null) {
             LOGGER.warn("WebService not found for distribution: {}", distributionSelected.getInstanceId());
             return null;
         }
 
-        // Step 5: Pre-fetch ALL linked entities (CRITICAL OPTIMIZATION)
+        // Pre-fetch ALL linked entities
         long prefetchStart = System.currentTimeMillis();
         PreFetchedEntities preFetched = preFetchLinkedEntities(dp, ws, operationsIdRelatedToDistribution);
         LOGGER.info("[PERF] Pre-fetching entities: {} ms", System.currentTimeMillis() - prefetchStart);
 
-        // Step 6: Build extended distribution object
+        // Build extended distribution object
         long buildStart = System.currentTimeMillis();
         DistributionExtended distribution = buildDistributionExtended(
                 distributionSelected, dp, ws, preFetched, operationsIdRelatedToDistribution

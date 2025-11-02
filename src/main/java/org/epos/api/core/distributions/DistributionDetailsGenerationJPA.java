@@ -60,7 +60,7 @@ public class DistributionDetailsGenerationJPA {
         long startTime = System.currentTimeMillis();
         LOGGER.info("Generating distribution details (OPTIMIZED) for parameters: {}", parameters);
 
-        // Step 1: Retrieve main distribution
+        // Retrieve main distribution
         long retrievalStart = System.currentTimeMillis();
         org.epos.eposdatamodel.Distribution distributionSelected = (org.epos.eposdatamodel.Distribution)
                 AbstractAPI.retrieveAPI(EntityNames.DISTRIBUTION.name()).retrieve(parameters.get("id").toString());
@@ -71,29 +71,29 @@ public class DistributionDetailsGenerationJPA {
         }
         LOGGER.info("[PERF] Distribution retrieval: {} ms", System.currentTimeMillis() - retrievalStart);
 
-        // Step 2: Retrieve DataProduct
+        // Retrieve DataProduct
         DataProduct dp = getDataProduct(distributionSelected);
         if (dp == null) {
             LOGGER.warn("DataProduct not found for distribution: {}", distributionSelected.getInstanceId());
             return null;
         }
 
-        // Step 3: Retrieve WebService
+        //  Retrieve WebService
         WebService ws = getWebService(distributionSelected);
         if (ws == null && distributionSelected.getAccessService() != null) {
             LOGGER.warn("WebService not found for distribution: {}", distributionSelected.getInstanceId());
             return null;
         }
 
-        // Step 4: Retrieve Operation
+        // Retrieve Operation
         Operation op = getOperation(ws, distributionSelected);
 
-        // Step 5: Pre-fetch ALL linked entities (CRITICAL OPTIMIZATION)
+        // Pre-fetch ALL linked entities
         long prefetchStart = System.currentTimeMillis();
         PreFetchedEntities preFetched = preFetchLinkedEntities(dp, ws, op);
         LOGGER.info("[PERF] Pre-fetching entities: {} ms", System.currentTimeMillis() - prefetchStart);
 
-        // Step 6: Build distribution object
+        // Build distribution object
         long buildStart = System.currentTimeMillis();
         Distribution distribution = buildDistribution(distributionSelected, dp, ws, op, preFetched, facetsType);
         LOGGER.info("[PERF] Building distribution: {} ms", System.currentTimeMillis() - buildStart);

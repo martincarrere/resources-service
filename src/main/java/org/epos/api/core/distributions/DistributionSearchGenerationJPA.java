@@ -48,11 +48,11 @@ public class DistributionSearchGenerationJPA {
         LOGGER.info("Requests start - JPA method (OPTIMIZED)");
         long startTime = System.currentTimeMillis();
 
-        // Step 1: Determine access level and versions
+        // Determine access level and versions
         boolean isBackofficeUser = user != null;
         List<StatusType> versions = getVersions(parameters, isBackofficeUser);
 
-        // Step 2: Retrieve and filter dataproducts
+        // Retrieve and filter dataproducts
         long retrievalStart = System.currentTimeMillis();
         Map<String, User> userMap = DatabaseConnections.retrieveUserMap();
 
@@ -66,19 +66,19 @@ public class DistributionSearchGenerationJPA {
         LOGGER.info("[PERF] Data retrieval: {} ms ({} dataproducts)",
                 System.currentTimeMillis() - retrievalStart, dataproducts.size());
 
-        // Step 3: Apply filters
+        // Apply filters
         long filterStart = System.currentTimeMillis();
         LOGGER.info("Apply filter using input parameters: {}", parameters.toString());
         dataproducts = DistributionFilterSearch.doFilters(dataproducts, parameters);
         LOGGER.info("[PERF] Filtering: {} ms ({} dataproducts remaining)",
                 System.currentTimeMillis() - filterStart, dataproducts.size());
 
-        // Step 4: Pre-fetch all linked entities (CRITICAL OPTIMIZATION)
+        // Pre-fetch all linked entities (CRITICAL OPTIMIZATION)
         long prefetchStart = System.currentTimeMillis();
         PreFetchedEntities preFetched = preFetchLinkedEntities(dataproducts);
         LOGGER.info("[PERF] Pre-fetching entities: {} ms", System.currentTimeMillis() - prefetchStart);
 
-        // Step 5: Process dataproducts in parallel with thread-safe collections
+        // Process dataproducts in parallel with thread-safe collections
         long processingStart = System.currentTimeMillis();
         Set<DiscoveryItem> discoveryMap = ConcurrentHashMap.newKeySet();
         Set<String> keywords = ConcurrentHashMap.newKeySet();
@@ -97,7 +97,7 @@ public class DistributionSearchGenerationJPA {
         LOGGER.info("[PERF] Processing: {} ms", System.currentTimeMillis() - processingStart);
         LOGGER.info("Final number of results: {}", discoveryMap.size());
 
-        // Step 6: Build response
+        // Build response
         long responseStart = System.currentTimeMillis();
         SearchResponse response = buildResponse(discoveryMap, keywords, organizationsEntityIds,
                 scienceDomains, serviceTypes, parameters);
