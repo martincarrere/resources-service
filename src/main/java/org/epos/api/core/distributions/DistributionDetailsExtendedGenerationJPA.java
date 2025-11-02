@@ -18,6 +18,7 @@ import org.epos.api.beans.Webservice;
 import org.epos.api.core.AvailableFormatsGeneration;
 import org.epos.api.core.DataServiceProviderGeneration;
 import org.epos.api.core.EnvironmentVariables;
+import org.epos.api.core.PreFetchedEntities;
 import org.epos.api.enums.ProviderType;
 import org.epos.api.facets.Facets;
 import org.epos.api.facets.FacetsGeneration;
@@ -720,21 +721,5 @@ public class DistributionDetailsExtendedGenerationJPA {
             formatted = formatted + "Z";
         }
         return formatted;
-    }
-
-    /**
-     * Container class for pre-fetched entities
-     */
-    private static class PreFetchedEntities {
-        Map<String, Object> identifiers = new HashMap<>();
-        Map<String, Object> locations = new HashMap<>();
-        Map<String, Object> temporals = new HashMap<>();
-        Map<String, Object> organizations = new HashMap<>();
-        Map<String, Object> categories = new HashMap<>();
-        Map<String, Object> contactPoints = new HashMap<>();
-        Map<String, Object> persons = new HashMap<>();
-        Map<String, Object> documentations = new HashMap<>();
-        Map<String, Object> operations = new HashMap<>();
-        Map<String, Object> mappings = new HashMap<>();
     }
 }

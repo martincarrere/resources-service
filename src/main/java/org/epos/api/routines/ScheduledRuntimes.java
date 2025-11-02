@@ -111,7 +111,6 @@ public class ScheduledRuntimes {
 	@Async
 	public void connectionsUpdater() {
 		LOGGER.info("[Scheduled Task - Resources] Updating resources information");
-		//EposDataModelDAO.clearAllCaches();
         DatabaseConnections.getInstance().syncDatabaseConnections();
         EposDataModelDAO.getInstance().printCacheReport();
         List<DataProduct> dataproducts = ((List<DataProduct>) AbstractAPI
@@ -120,7 +119,6 @@ public class ScheduledRuntimes {
                 .parallelStream()
                 .collect(Collectors.toList());
         DistributionSearchGenerationJPA.preFetchLinkedEntities(dataproducts);
-		//AvailableFormatsGeneration.generate();
         LOGGER.info("[Scheduled Task - Resources] Resources successfully updated");
 	}
 

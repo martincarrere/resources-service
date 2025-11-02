@@ -9,6 +9,7 @@ import commonapis.LinkedEntityAPI;
 import metadataapis.EntityNames;
 import org.epos.api.beans.DataServiceProvider;
 import org.epos.api.core.DataServiceProviderGeneration;
+import org.epos.api.core.PreFetchedEntities;
 import org.epos.api.utility.BBoxToPolygon;
 import org.epos.eposdatamodel.*;
 import org.locationtech.jts.geom.Geometry;
@@ -158,7 +159,7 @@ public class FacilityFilterSearch {
                                 .filter(Objects::nonNull)
                                 .anyMatch(location -> {
                                     try {
-                                        Geometry dsGeometry = reader.read(location.getLocation());
+                                        Geometry dsGeometry = reader.read(((Location)location).getLocation());
                                         return inputGeometry.intersects(dsGeometry);
                                     } catch (ParseException e) {
                                         LOGGER.error("Error parsing geometry for facility {}", fac.getMetaId(), e);
@@ -315,12 +316,5 @@ public class FacilityFilterSearch {
         });
 
         return new ArrayList<>(tempDatasetList);
-    }
-
-    /**
-     * Container class for pre-fetched entities
-     */
-    private static class PreFetchedEntities {
-        Map<String, Location> locations = new ConcurrentHashMap<>();
     }
 }

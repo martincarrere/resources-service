@@ -11,6 +11,7 @@ import commonapis.LinkedEntityAPI;
 import metadataapis.EntityNames;
 import org.epos.api.beans.DataServiceProvider;
 import org.epos.api.core.DataServiceProviderGeneration;
+import org.epos.api.core.PreFetchedEntities;
 import org.epos.api.routines.DatabaseConnections;
 import org.epos.api.utility.BBoxToPolygon;
 import org.epos.eposdatamodel.*;
@@ -698,15 +699,4 @@ public class DistributionFilterSearch {
         return new java.sql.Timestamp(dateToConvert.getTime()).toLocalDateTime();
     }
 
-    /**
-     * Container class for pre-fetched entities
-     */
-    private static class PreFetchedEntities {
-        Map<String, Object> categories = new ConcurrentHashMap<>();
-        Map<String, Object> distributions = new ConcurrentHashMap<>();
-        Map<String, Object> webServices = new ConcurrentHashMap<>();
-        Map<String, Object> locations = new ConcurrentHashMap<>();
-        Map<String, Object> identifiers = new ConcurrentHashMap<>();
-        Map<String, Object> organizations = new ConcurrentHashMap<>();
-    }
 }

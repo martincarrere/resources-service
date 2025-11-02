@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import abstractapis.AbstractAPI;
 import commonapis.LinkedEntityAPI;
 import metadataapis.EntityNames;
+import org.epos.api.core.PreFetchedEntities;
 import org.epos.api.routines.DatabaseConnections;
 import org.epos.eposdatamodel.Address;
 import org.epos.eposdatamodel.Identifier;
@@ -119,7 +120,7 @@ public class OrganizationFilterSearch {
             // Check identifiers - using pre-fetched data
             if (edmOrganisation.getIdentifier() != null) {
                 edmOrganisation.getIdentifier().forEach(identifierLe -> {
-                    Identifier identifier = preFetched.identifiers.get(identifierLe.getInstanceId());
+                    Identifier identifier = (Identifier) preFetched.identifiers.get(identifierLe.getInstanceId());
                     if (identifier != null) {
                         qSMap.keySet().forEach(q -> {
                             if (identifier.getIdentifier() != null && identifier.getIdentifier().toLowerCase().contains(q)) {
@@ -178,7 +179,7 @@ public class OrganizationFilterSearch {
                         return false;
                     }
 
-                    Address address = preFetched.addresses.get(edmOrganisation.getAddress().getInstanceId());
+                    Address address = (Address) preFetched.addresses.get(edmOrganisation.getAddress().getInstanceId());
                     if (address == null || address.getCountry() == null) {
                         return false;
                     }
@@ -186,13 +187,5 @@ public class OrganizationFilterSearch {
                     return countries.contains(address.getCountry().toLowerCase());
                 })
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Container class for pre-fetched entities
-     */
-    private static class PreFetchedEntities {
-        Map<String, Identifier> identifiers = new ConcurrentHashMap<>();
-        Map<String, Address> addresses = new ConcurrentHashMap<>();
     }
 }

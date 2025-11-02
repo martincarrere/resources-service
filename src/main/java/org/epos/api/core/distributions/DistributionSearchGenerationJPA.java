@@ -14,10 +14,7 @@ import org.epos.api.beans.DiscoveryItem;
 import org.epos.api.beans.DiscoveryItem.DiscoveryItemBuilder;
 import org.epos.api.beans.NodeFilters;
 import org.epos.api.beans.SearchResponse;
-import org.epos.api.core.AvailableFormatsGeneration;
-import org.epos.api.core.DataServiceProviderGeneration;
-import org.epos.api.core.EnvironmentVariables;
-import org.epos.api.core.ZabbixExecutor;
+import org.epos.api.core.*;
 import org.epos.api.core.filtersearch.DistributionFilterSearch;
 import org.epos.api.facets.Facets;
 import org.epos.api.facets.FacetsGeneration;
@@ -484,15 +481,5 @@ public class DistributionSearchGenerationJPA {
         filters.add(serviceTypesNodes);
 
         return new SearchResponse(results, filters);
-    }
-
-    /**
-     * Container class for pre-fetched entities
-     */
-    private static class PreFetchedEntities {
-        Map<String, Object> categories = new ConcurrentHashMap<>();
-        Map<String, Object> organizations = new ConcurrentHashMap<>();
-        Map<String, Object> distributions = new ConcurrentHashMap<>();
-        Map<String, Object> webServices = new ConcurrentHashMap<>();
     }
 }

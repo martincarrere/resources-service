@@ -219,7 +219,7 @@ public class AvailableFormatsGeneration {
     }
 
     /**
-     * Process mappings to determine available formats (OPTIMIZED - uses pre-fetched mappings)
+     * Process mappings to determine available formats
      *
      * @return true if OGC format was detected
      */

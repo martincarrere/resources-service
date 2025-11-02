@@ -83,7 +83,7 @@ public class OrganisationsGeneration {
     }
 
     /**
-     * Filter organizations by type - OPTIMIZED with pre-fetching and parallel processing
+     * Filter organizations by type
      */
     private static List<Organization> filterByType(List<Organization> organisations, Map<String, Object> parameters) {
         String typeParam = parameters.get("type").toString().toLowerCase();
@@ -157,7 +157,7 @@ public class OrganisationsGeneration {
     }
 
     /**
-     * Filter organizations by country - OPTIMIZED with pre-fetched addresses
+     * Filter organizations by country
      */
     private static List<Organization> filterByCountry(List<Organization> organisations, Map<String, Object> parameters) {
         String country = parameters.get("country").toString();
