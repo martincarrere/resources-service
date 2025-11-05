@@ -42,13 +42,6 @@ import abstractapis.AbstractAPI;
 import commonapis.LinkedEntityAPI;
 import metadataapis.EntityNames;
 
-/**
- * Optimized version of DistributionDetailsExtendedGenerationJPA with:
- * - Pre-fetching of all linked entities (eliminates N+1 queries)
- * - Performance logging
- * - Cleaner code structure
- * - Expected improvement: 50-200x faster
- */
 public class DistributionDetailsExtendedGenerationJPA {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributionDetailsExtendedGenerationJPA.class);

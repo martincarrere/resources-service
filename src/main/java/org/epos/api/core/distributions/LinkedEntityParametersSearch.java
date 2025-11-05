@@ -67,15 +67,14 @@ public class LinkedEntityParametersSearch {
         LOGGER.info("[PERF] Payload retrieval: {} ms", System.currentTimeMillis() - payloadStart);
         LOGGER.debug("Payload {} found with {} output mappings.", payloadId, payload.getOutputMapping().size());
 
-        // CRITICAL OPTIMIZATION - Batch fetch only relevant mappings instead of retrieveAll()
+        // Batch fetch only relevant mappings instead of retrieveAll()
         long mappingStart = System.currentTimeMillis();
         Set<String> relevantMappingIds = payload.getOutputMapping().stream()
                 .map(LinkedEntity::getInstanceId)
                 .collect(Collectors.toSet());
         LOGGER.debug("Relevant mapping ids ({}): {}", relevantMappingIds.size(), relevantMappingIds);
 
-        // BEFORE: retrieveAll() loads ALL mappings, then filters (SLOW)
-        // AFTER: retrieveBunch() fetches only needed mappings (FAST)
+        // retrieveBunch() fetches only needed mappings (FAST)
         Set<Parameter> parameters = new HashSet<>();
         if (!relevantMappingIds.isEmpty()) {
             List<OutputMapping> outputMappings = (List<OutputMapping>) AbstractAPI

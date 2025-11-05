@@ -26,14 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import model.StatusType;
 
-/**
- * Optimized version of DistributionSearchGenerationJPA with:
- * - Pre-fetching of all linked entities (eliminates N+1 query problem)
- * - Parallel stream processing
- * - Thread-safe collections
- * - Performance logging
- * - Reduced memory allocations
- */
+
 public class DistributionSearchGenerationJPA {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributionSearchGenerationJPA.class);
