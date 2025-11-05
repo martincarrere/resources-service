@@ -1,8 +1,5 @@
 package org.epos.api.routines;
 
-import static abstractapis.AbstractAPI.retrieveAPI;
-
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -18,25 +15,7 @@ import java.util.stream.Collectors;
 import dao.EposDataModelDAO;
 import org.epos.api.beans.Plugin;
 import org.epos.api.utility.Utils;
-import org.epos.eposdatamodel.Address;
-import org.epos.eposdatamodel.Category;
-import org.epos.eposdatamodel.CategoryScheme;
-import org.epos.eposdatamodel.DataProduct;
-import org.epos.eposdatamodel.Distribution;
-import org.epos.eposdatamodel.Equipment;
-import org.epos.eposdatamodel.Facility;
-import org.epos.eposdatamodel.Identifier;
-import org.epos.eposdatamodel.Location;
-import org.epos.eposdatamodel.Mapping;
-import org.epos.eposdatamodel.Operation;
-import org.epos.eposdatamodel.Organization;
-import org.epos.eposdatamodel.OutputMapping;
-import org.epos.eposdatamodel.Payload;
-import org.epos.eposdatamodel.PeriodOfTime;
-import org.epos.eposdatamodel.SoftwareApplication;
 import org.epos.eposdatamodel.User;
-import org.epos.eposdatamodel.WebService;
-import org.epos.handler.dbapi.service.EntityManagerService;
 import org.epos.router_framework.RpcRouter;
 import org.epos.router_framework.RpcRouterBuilder;
 import org.epos.router_framework.domain.Actor;
@@ -48,31 +27,10 @@ import org.epos.router_framework.types.ServiceType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import abstractapis.AbstractAPI;
-import metadataapis.EntityNames;
 import usermanagementapis.UserGroupManagementAPI;
 
 public class DatabaseConnections {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseConnections.class);
-
-	// private List<DataProduct> dataproducts;
-	// private List<SoftwareApplication> softwareApplications;
-	// private List<Organization> organizationList;
-	// private List<Category> categoryList;
-	// private List<CategoryScheme> categorySchemesList;
-	// private List<Distribution> distributionList;
-	// private List<Operation> operationList;
-	// private List<WebService> webServiceList;
-	// private List<Address> addressList;
-	// private List<Location> locationList;
-	// private List<PeriodOfTime> periodOfTimeList;
-	// private List<Identifier> identifierList;
-	// private List<Mapping> mappingList;
-	// private List<Equipment> equipmentList;
-	// private List<Facility> facilityList;
-	// private List<OutputMapping> outputMappingsList;
-	// private List<Payload> payloadsList;
-	// private Map<String, User> usersMap;
 
 	// distributionId -> list of relations with plugins
 	private Map<String, List<Plugin.Relations>> plugins;
