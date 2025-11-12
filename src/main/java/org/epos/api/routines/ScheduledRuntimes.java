@@ -5,12 +5,19 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
+import abstractapis.AbstractAPI;
+import dao.EposDataModelDAO;
+import metadataapis.EntityNames;
 import org.apache.commons.lang3.StringUtils;
 import org.epos.api.core.EnvironmentVariables;
 import org.epos.api.core.ZabbixExecutor;
+import org.epos.api.core.distributions.DistributionSearchGenerationJPA;
 import org.epos.api.facets.Facets;
 import org.epos.api.utility.Utils;
+import org.epos.eposdatamodel.DataProduct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
@@ -20,7 +27,6 @@ import org.springframework.stereotype.Component;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import dao.DAOMonitor;
 import jakarta.annotation.PostConstruct;
 
 @Component
@@ -105,10 +111,14 @@ public class ScheduledRuntimes {
 	@Async
 	public void connectionsUpdater() {
 		LOGGER.info("[Scheduled Task - Resources] Updating resources information");
-		//EposDataModelDAO.clearAllCaches();
-		LOGGER.info(DAOMonitor.generatePerformanceReport());
         DatabaseConnections.getInstance().syncDatabaseConnections();
-		//AvailableFormatsGeneration.generate();
+        EposDataModelDAO.getInstance().printCacheReport();
+        List<DataProduct> dataproducts = ((List<DataProduct>) AbstractAPI
+                .retrieveAPI(EntityNames.DATAPRODUCT.name())
+                .retrieveAll())
+                .parallelStream()
+                .collect(Collectors.toList());
+        DistributionSearchGenerationJPA.preFetchLinkedEntities(dataproducts);
         LOGGER.info("[Scheduled Task - Resources] Resources successfully updated");
 	}
 

@@ -88,7 +88,6 @@ public class URLGeneration {
 			}
 		}
 
-		System.out.println("TEMPLATE: "+template);
 		if(template.endsWith("?")) template = template.substring(0, template.length() - 1);
 
 		return template;
@@ -99,7 +98,6 @@ public class URLGeneration {
 
 		//boolean iHaveQuestionMark = false;
 		segment = segment.replaceAll("\\{", "").replaceAll("\\}", "");
-		LOGGER.info("segmento: "+segment);
 		StringBuilder segmentOutput = new StringBuilder();
 
 		String switchValue = segment.startsWith("%20AND%20")? "%20AND%20" : segment.substring(0, 1);
@@ -109,10 +107,7 @@ public class URLGeneration {
 		case "?":
 			//iHaveQuestionMark = true;
 			String[] parameters = segment.replace("?","").split(",");
-            LOGGER.info("Pre-output: "+segmentOutput.toString());
-			System.out.println("Pre-output: "+segmentOutput.toString());
             for (String parameter : parameters) {
-                LOGGER.info("Loop-Start: " + segmentOutput.toString());
                 if (map.containsKey(parameter.trim())) {
                     if (segmentOutput.length() <= 1) {
                         segmentOutput.append(parameter.trim()).append("=").append(map.get(parameter.trim()));
@@ -120,18 +115,13 @@ public class URLGeneration {
                         segmentOutput.append("&").append(parameter.trim()).append("=").append(map.get(parameter.trim()));
                     }
                 }
-                LOGGER.info("Loop-End: " + segmentOutput.toString());
-                System.out.println("Loop-End: " + segmentOutput.toString());
             }
 			//if(iHaveQuestionMark) segmentOutput.insert(0, "?");
 			if(!segmentOutput.toString().isEmpty()) segmentOutput.insert(0, "?");
 			break;
 		case "&":
 			String[] parameters1 = segment.replace("&","").split(",");
-            LOGGER.info("Pre-output: "+segmentOutput.toString());
-			System.out.println("Pre-output: "+segmentOutput.toString());
             for (String s : parameters1) {
-                LOGGER.info("Loop-Start: " + segmentOutput.toString());
                 if (map.containsKey(s.trim())) {
                     if (segmentOutput.length() <= 1) {
                         segmentOutput.append(s.trim()).append("=").append(map.get(s.trim()));
@@ -139,17 +129,12 @@ public class URLGeneration {
                         segmentOutput.append("&").append(s.trim()).append("=").append(map.get(s.trim()));
                     }
                 }
-                LOGGER.info("Loop-End: " + segmentOutput.toString());
-                System.out.println("Loop-End: " + segmentOutput.toString());
             }
 			if(!segmentOutput.toString().isEmpty()) segmentOutput.insert(0, "&");
 			break;
 		case "/":
 			String[] parameters2 = segment.replace("/","").split(",");
-            LOGGER.info("Pre-output: "+segmentOutput.toString());
-			System.out.println("Pre-output: "+segmentOutput.toString());
             for (String s : parameters2) {
-                LOGGER.info("Loop-Start: " + segmentOutput.toString());
                 if (map.containsKey(s.trim())) {
                     if (segmentOutput.length() <= 1) {
                         segmentOutput.append(s.trim()).append("=").append(map.get(s.trim()));
@@ -157,17 +142,12 @@ public class URLGeneration {
                         segmentOutput.append("&").append(s.trim()).append("=").append(map.get(s.trim()));
                     }
                 }
-                LOGGER.info("Loop-End: " + segmentOutput.toString());
-                System.out.println("Loop-End: " + segmentOutput.toString());
             }
 			if(!segmentOutput.toString().isEmpty()) segmentOutput.insert(0, "/");
 			break;
 		case "%20AND%20":
 			String[] parameters3 = segment.replace("%20AND%20","").split(",");
-            LOGGER.info("Pre-output: "+segmentOutput.toString());
-			System.out.println("Pre-output: "+segmentOutput.toString());
             for (String s : parameters3) {
-                LOGGER.info("Loop-Start: " + segmentOutput.toString());
                 if (map.containsKey(s.trim())) {
                     if (segmentOutput.length() <= 1) {
                         segmentOutput.append(s.trim()).append("=").append(map.get(s.trim()));
@@ -175,17 +155,12 @@ public class URLGeneration {
                         segmentOutput.append("%20AND%20").append(s.trim()).append("=").append(map.get(s.trim()));
                     }
                 }
-                LOGGER.info("Loop-End: " + segmentOutput.toString());
-                System.out.println("Loop-End: " + segmentOutput.toString());
             }
 			if(!segmentOutput.toString().isEmpty()) segmentOutput.insert(0, "%20AND%20");
 			break;
 		case "%20and%20":
 			String[] parameters4 = segment.replace("%20and%20","").split(",");
-            LOGGER.info("Pre-output: "+segmentOutput.toString());
-			System.out.println("Pre-output: "+segmentOutput.toString());
             for (String s : parameters4) {
-                LOGGER.info("Loop-Start: " + segmentOutput.toString());
                 if (map.containsKey(s.trim())) {
                     if (segmentOutput.length() <= 1) {
                         segmentOutput.append(s.trim()).append("=").append(map.get(s.trim()));
@@ -193,14 +168,10 @@ public class URLGeneration {
                         segmentOutput.append("%20and%20").append(s.trim()).append("=").append(map.get(s.trim()));
                     }
                 }
-                LOGGER.info("Loop-End: " + segmentOutput.toString());
-                System.out.println("Loop-End: " + segmentOutput.toString());
             }
 			if(!segmentOutput.toString().isEmpty()) segmentOutput.insert(0, "%20and%20");
 			break;
 		default:
-			System.out.println(segment);
-			System.out.println(map.keySet().toString());
 			String[] parameters11 = segment.split(",");
             for (String s : parameters11) {
                 if (map.containsKey(s.trim())) {
@@ -208,7 +179,6 @@ public class URLGeneration {
                 }
             }
             try {
-				System.out.println(segmentOutput.length());
 				if(segmentOutput.length()>0) {
 					String aux =  segmentOutput.substring(1, segmentOutput.length());
 					segmentOutput = new StringBuilder();
@@ -220,8 +190,6 @@ public class URLGeneration {
 			}
 			break;
 		}
-
-		System.out.println("Segment-output: "+segmentOutput.toString());
 
 		return segmentOutput.toString();
 	}
