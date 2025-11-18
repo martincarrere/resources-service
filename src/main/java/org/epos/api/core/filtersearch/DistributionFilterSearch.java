@@ -380,7 +380,7 @@ public class DistributionFilterSearch {
      * Check if period is within date range
      */
     private static boolean isWithinDateRange(PeriodOfTime period, PeriodOfTime temporal) {
-        if (temporal.getStartDate() != null) {
+        /*if (temporal.getStartDate() != null) {
             if (period.getEndDate() == null || period.getEndDate().isBefore(temporal.getStartDate())) {
                 return false;
             }
@@ -389,8 +389,11 @@ public class DistributionFilterSearch {
             if (period.getStartDate() == null || period.getStartDate().isAfter(temporal.getEndDate())) {
                 return false;
             }
-        }
-        return true;
+        }*/
+        return (period.getStartDate() == null || temporal.getEndDate() == null || period.getStartDate().isBefore(temporal.getEndDate()))
+                && (temporal.getStartDate() == null || period.getEndDate() == null || temporal.getStartDate().isBefore(period.getEndDate()))
+                && (period.getStartDate() == null || period.getEndDate() == null || period.getStartDate().isBefore(period.getEndDate()))
+                && (temporal.getStartDate() == null || temporal.getEndDate() == null || temporal.getStartDate().isBefore(temporal.getEndDate()));
     }
 
     /**
