@@ -160,7 +160,7 @@ public class MonitoringGeneration {
 				}
 
 				mb.setId(dx.getMetaId());
-				mb.setUid(dx.getUid());
+				mb.setUid(dx.getUid().replaceAll("file://",""));
 				if(mb.getOriginalURL()!=null)
 					monitoringList.add(mb);
 			}
