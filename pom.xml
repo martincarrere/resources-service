@@ -180,6 +180,17 @@
 			<groupId>org.epos-eu.ics-c</groupId>
 			<artifactId>router-framework</artifactId>
 			<version>1.0.3</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.everit-org.json-schema</groupId>
+                    <artifactId>org.everit.json.schema</artifactId>
+                </exclusion>
+            </exclusions>
 		</dependency>
+        <dependency>
+            <groupId>com.github.erosb</groupId>
+            <artifactId>everit-json-schema</artifactId>
+            <version>1.14.6</version>
+        </dependency>
 	</dependencies>
 </project>
