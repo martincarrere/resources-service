@@ -379,6 +379,8 @@ public class DistributionSearchGenerationJPA {
             discoveryItem.setStatus(ZabbixExecutor.getInstance().getStatusInfoFromSha(discoveryItem.getSha256id()));
             discoveryItem.setStatusTimestamp(
                     ZabbixExecutor.getInstance().getStatusTimestampInfoFromSha(discoveryItem.getSha256id()));
+            discoveryItem.setStatusURL(
+                    ZabbixExecutor.getInstance().getStatusTimestampInfoFromSha(discoveryItem.getSha256id()));
         }
 
         discoveryMap.add(discoveryItem);

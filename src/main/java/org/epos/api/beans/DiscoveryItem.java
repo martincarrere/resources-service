@@ -26,6 +26,7 @@ public class DiscoveryItem implements Serializable {
     private DataServiceProvider dataServiceProvider;
     private String versioningStatus;
     private String statusTimestamp;
+    private String statusURL;
     private List<AvailableFormat> availableFormats;
     private String editorId;
     private String editorFullName;
@@ -176,6 +177,15 @@ public class DiscoveryItem implements Serializable {
         this.statusTimestamp = statusTimestamp;
     }
 
+    public String getStatusURL() {
+        return statusURL;
+    }
+
+    public void setStatusURL(String statusURL) {
+        this.statusURL = statusURL;
+    }
+
+
     public List<AvailableFormat> getAvailableFormats() {
         return availableFormats;
     }
@@ -234,6 +244,7 @@ public class DiscoveryItem implements Serializable {
         private DataServiceProvider dataServiceProvider;
         private String versioningStatus;
         private String statusTimestamp;
+        private String statusURL;
         private List<AvailableFormat> availableFormats;
         private String editorId;
         private String editorFullName;
@@ -307,6 +318,11 @@ public class DiscoveryItem implements Serializable {
 
         public DiscoveryItemBuilder statusTimestamp(String statusTimestamp) {
             this.statusTimestamp = statusTimestamp;
+            return this;
+        }
+
+        public DiscoveryItemBuilder statusURL(String statusURL) {
+            this.statusURL = statusURL;
             return this;
         }
 

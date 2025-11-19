@@ -404,6 +404,13 @@ public class ZabbixExecutor {
     }
 
     /**
+     *  TODO:
+     */
+    public String getStatusURLFromSha(String idSha) {
+        return "https://epos-services.vm.fedcloud.eu/monitoring/?sha=" + idSha;
+    }
+
+    /**
      * Verifica la connessione con Zabbix controllando la versione API
      * Nota: apiinfo.version NON richiede autenticazione in Zabbix 7.4
      */
