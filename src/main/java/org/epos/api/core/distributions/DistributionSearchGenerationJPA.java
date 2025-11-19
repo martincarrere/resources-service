@@ -380,7 +380,7 @@ public class DistributionSearchGenerationJPA {
             discoveryItem.setStatusTimestamp(
                     ZabbixExecutor.getInstance().getStatusTimestampInfoFromSha(discoveryItem.getSha256id()));
             discoveryItem.setStatusURL(
-                    ZabbixExecutor.getInstance().getStatusTimestampInfoFromSha(discoveryItem.getSha256id()));
+                    ZabbixExecutor.getInstance().getStatusURLFromSha(discoveryItem.getSha256id()));
         }
 
         discoveryMap.add(discoveryItem);
