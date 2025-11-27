@@ -60,6 +60,7 @@ public class EquipmentsDetailsItemGenerationJPA {
 						List<String> facilityTypes = new ArrayList<String>();
 						categoriesFromDB
 						.stream()
+                                .filter(cat -> cat.getUid()!=null)
 						.filter(cat -> cat.getUid().equals(item.getType()))
 						.map(Category::getName)
 						.forEach(facilityTypes::add);
@@ -104,6 +105,7 @@ public class EquipmentsDetailsItemGenerationJPA {
 			feature.addSimpleProperty("Description", equipment.getDescription());
 			feature.addSimpleProperty("Type", Optional.of(Optional.of(categoriesFromDB
 					.stream()
+                    .filter(cat -> cat.getUid()!=null)
 					.filter(cat -> cat.getUid().equals(equipment.getType())).map(Category::getName).collect(Collectors.toList())).get()).orElse(null));
 			feature.addSimpleProperty("Category", equipment.getCategory());
 			feature.addSimpleProperty("Dynamic range", equipment.getDynamicRange());
