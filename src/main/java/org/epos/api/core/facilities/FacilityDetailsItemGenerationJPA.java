@@ -91,6 +91,7 @@ public class FacilityDetailsItemGenerationJPA {
 			// Facility Types
 			List<Category> type = categoriesFromDB
 					.stream()
+                    .filter(cat -> cat.getUid()!=null)
 					.filter(cat -> cat.getUid().equals(facilitySelected.getType())).collect(Collectors.toList());
 
 			if(type!=null && !type.isEmpty())
@@ -131,6 +132,7 @@ public class FacilityDetailsItemGenerationJPA {
 						if(linkedEntity.getEntityType().equals(EntityNames.FACILITY.name()) && linkedEntity.getInstanceId().equals(facilitySelected.getInstanceId())){
 							categoriesFromDB
 									.stream()
+                                    .filter(cat -> cat.getUid()!=null)
 									.filter(cat -> cat.getUid().equals(equipment.getType()))
 									.forEach(equipmentTypes::add);
 						}
@@ -217,6 +219,7 @@ public class FacilityDetailsItemGenerationJPA {
 		feature.addSimpleProperty("Description", Optional.ofNullable(facilitySelected.getDescription()).orElse(""));
 		feature.addSimpleProperty("Type", Optional.of(categoriesFromDB
 				.stream()
+                        .filter(cat -> cat.getUid()!=null)
 				.filter(cat -> cat.getUid().equals(facilitySelected.getType())).map(Category::getName).collect(Collectors.toList())).get().toString());
 
 		for(LinkedEntity locLe : facilitySelected.getSpatialExtent()) {
